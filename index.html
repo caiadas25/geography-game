@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wanderlit — light up the world you've travelled</title>
+<meta name="description" content="Search the cities you've visited and watch the world map light up. Unlock countries, then whole continents. Share your score and challenge your friends.">
+<meta property="og:title" content="Wanderlit — light up the world you've travelled">
+<meta property="og:description" content="Unlock cities, countries and continents on a glowing world map. How much of the world have you seen?">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#050810">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23070b18'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%237cf0d4' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23ffd479'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="stage">
+  <div id="sky"></div>
+  <svg id="map" aria-label="World map"></svg>
+  <canvas id="fx"></canvas>
+  <div id="flash"></div>
+  <div id="vignette"></div>
+</div>
+
+<header id="brand">
+  <div class="logo"><i></i></div>
+  <div>
+    <h1>Wanderlit</h1>
+    <p>light up the world you've travelled</p>
+  </div>
+</header>
+
+<div id="searchWrap">
+  <div id="search">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" type="text" placeholder="Search a city you've been to…" autocomplete="off" spellcheck="false" aria-label="Search cities">
+    <kbd>/</kbd>
+  </div>
+  <ul id="results" role="listbox"></ul>
+  <div id="hint">Try <button data-try="Lisbon">Lisbon</button>, <button data-try="Tokyo">Tokyo</button> or <button data-try="New York">New York</button> — or tap any dot on the map</div>
+</div>
+
+<aside id="score" class="glass">
+  <div class="rank" id="rank">Homebody</div>
+  <div class="big"><span id="scoreNum">0</span><small>pts</small></div>
+  <div class="stats">
+    <div class="stat"><div class="row"><span>Cities</span><b id="stCities">0</b></div><div class="bar"><i id="barCities"></i></div></div>
+    <div class="stat"><div class="row"><span>Countries</span><b id="stCountries">0</b></div><div class="bar"><i id="barCountries"></i></div></div>
+    <div class="stat"><div class="row"><span>Continents</span><b id="stConts">0</b></div><div class="bar"><i id="barConts"></i></div></div>
+    <div class="stat"><div class="row"><span>Earth lit</span><b id="stEarth">0%</b></div><div class="bar gold"><i id="barEarth"></i></div></div>
+  </div>
+  <div class="next" id="next"></div>
+</aside>
+
+<aside id="panel" class="glass" aria-hidden="true">
+  <button class="x" id="panelClose" aria-label="Close">×</button>
+  <div class="tag" id="pTag"></div>
+  <h2 id="pName"></h2>
+  <div class="pprog"><div class="bar"><i id="pBar"></i></div><span id="pText"></span></div>
+  <div id="pChips"></div>
+</aside>
+
+<div id="dock">
+  <button id="btnZoomIn" class="round" aria-label="Zoom in">+</button>
+  <button id="btnZoomOut" class="round" aria-label="Zoom out">−</button>
+  <button id="btnHome" class="round" aria-label="Reset view" title="Reset view">⌂</button>
+  <button id="btnSound" class="round" aria-label="Toggle sound" title="Sound">♪</button>
+</div>
+
+<button id="btnShare" class="cta">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg>
+  Share my map
+</button>
+
+<div id="ribbon" class="glass" hidden>
+  <span id="ribbonText"></span>
+  <button id="ribbonBtn">Start your own map</button>
+</div>
+
+<div id="toasts"></div>
+<div id="banner"><div class="k"></div><div class="t"></div><div class="s"></div></div>
+<div id="tip"></div>
+
+<div id="modal" hidden>
+  <div class="sheet glass">
+    <button class="x" id="modalClose" aria-label="Close">×</button>
+    <h3>Share your map</h3>
+    <canvas id="cardPreview" width="1200" height="630"></canvas>
+    <label class="field">Your name <small>(optional)</small>
+      <input id="shareName" maxlength="24" placeholder="e.g. Ana" autocomplete="off">
+    </label>
+    <p id="shareText"></p>
+    <div class="field linkrow">
+      <input id="shareLink" readonly>
+      <button id="btnCopy" class="primary">Copy link</button>
+    </div>
+    <div class="actions">
+      <button id="btnNative" class="ghost">Share…</button>
+      <button id="btnImage" class="ghost">Download image</button>
+    </div>
+  </div>
+</div>
+
+<script src="vendor/d3.min.js"></script>
+<script src="vendor/topojson-client.min.js"></script>
+<script src="data/world.js"></script>
+<script src="data/cities.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

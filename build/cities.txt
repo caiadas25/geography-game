@@ -1,0 +1,211 @@
+# Country | City lat lon | City lat lon ...
+# Country names must match world-atlas 50m (see build.js aliases)
+# ---------- EUROPE ----------
+Portugal | Lisbon 38.72 -9.14 | Porto 41.15 -8.61 | Faro 37.02 -7.93
+Spain | Madrid 40.42 -3.70 | Barcelona 41.39 2.17 | Seville 37.39 -5.98 | Valencia 39.47 -0.38 | Bilbao 43.26 -2.93 | Málaga 36.72 -4.42 | Palma 39.57 2.65
+France | Paris 48.86 2.35 | Marseille 43.30 5.37 | Lyon 45.76 4.84 | Nice 43.70 7.27 | Bordeaux 44.84 -0.58 | Strasbourg 48.57 7.75 | Toulouse 43.60 1.44
+Italy | Rome 41.90 12.50 | Milan 45.46 9.19 | Venice 45.44 12.32 | Florence 43.77 11.26 | Naples 40.85 14.27 | Palermo 38.12 13.36 | Turin 45.07 7.69
+Germany | Berlin 52.52 13.40 | Munich 48.14 11.58 | Hamburg 53.55 9.99 | Frankfurt 50.11 8.68 | Cologne 50.94 6.96 | Dresden 51.05 13.74
+United Kingdom | London 51.51 -0.13 | Edinburgh 55.95 -3.19 | Manchester 53.48 -2.24 | Belfast 54.60 -5.93 | Cardiff 51.48 -3.18 | Glasgow 55.86 -4.25
+Ireland | Dublin 53.35 -6.26 | Cork 51.90 -8.47 | Galway 53.27 -9.05
+Netherlands | Amsterdam 52.37 4.90 | Rotterdam 51.92 4.48 | Utrecht 52.09 5.12
+Belgium | Brussels 50.85 4.35 | Bruges 51.21 3.22 | Antwerp 51.22 4.40
+Luxembourg | Luxembourg City 49.61 6.13
+Switzerland | Zurich 47.38 8.54 | Geneva 46.20 6.14 | Bern 46.95 7.45
+Austria | Vienna 48.21 16.37 | Salzburg 47.81 13.04 | Innsbruck 47.27 11.39
+Czechia | Prague 50.08 14.44 | Brno 49.20 16.61
+Poland | Warsaw 52.23 21.01 | Kraków 50.06 19.94 | Gdańsk 54.35 18.65 | Wrocław 51.11 17.04
+Hungary | Budapest 47.50 19.04 | Debrecen 47.53 21.63
+Slovakia | Bratislava 48.15 17.11 | Košice 48.72 21.26
+Slovenia | Ljubljana 46.06 14.51 | Bled 46.37 14.11
+Croatia | Zagreb 45.81 15.98 | Dubrovnik 42.65 18.09 | Split 43.51 16.44
+Bosnia and Herz. | Sarajevo 43.86 18.41 | Mostar 43.34 17.81
+Serbia | Belgrade 44.79 20.45 | Novi Sad 45.25 19.84
+Montenegro | Kotor 42.42 18.77 | Podgorica 42.44 19.26
+Albania | Tirana 41.33 19.82 | Sarandë 39.87 20.01
+Macedonia | Skopje 41.99 21.43 | Ohrid 41.12 20.80
+Kosovo | Pristina 42.66 21.17
+Greece | Athens 37.98 23.73 | Thessaloniki 40.64 22.94 | Santorini 36.39 25.46 | Heraklion 35.34 25.14
+Bulgaria | Sofia 42.70 23.32 | Plovdiv 42.14 24.75 | Varna 43.21 27.91
+Romania | Bucharest 44.43 26.10 | Cluj-Napoca 46.77 23.59 | Brașov 45.65 25.61
+Moldova | Chișinău 47.01 28.86
+Ukraine | Kyiv 50.45 30.52 | Lviv 49.84 24.03 | Odesa 46.48 30.72
+Belarus | Minsk 53.90 27.56 | Brest 52.10 23.70
+Lithuania | Vilnius 54.69 25.28 | Kaunas 54.90 23.90
+Latvia | Riga 56.95 24.11
+Estonia | Tallinn 59.44 24.75 | Tartu 58.38 26.72
+Finland | Helsinki 60.17 24.94 | Rovaniemi 66.50 25.73 | Tampere 61.50 23.76
+Sweden | Stockholm 59.33 18.07 | Gothenburg 57.71 11.97 | Malmö 55.60 13.00 | Kiruna 67.86 20.23
+Norway | Oslo 59.91 10.75 | Bergen 60.39 5.32 | Tromsø 69.65 18.96 | Trondheim 63.43 10.40
+Denmark | Copenhagen 55.68 12.57 | Aarhus 56.16 10.20 | Odense 55.40 10.39
+Iceland | Reykjavík 64.15 -21.94 | Akureyri 65.69 -18.09
+Russia | Moscow 55.76 37.62 | Saint Petersburg 59.93 30.34 | Kazan 55.79 49.12 | Novosibirsk 55.03 82.92 | Vladivostok 43.12 131.89 | Sochi 43.60 39.73
+Malta | Valletta 35.90 14.51
+Cyprus | Nicosia 35.19 33.38 | Paphos 34.78 32.43
+Andorra | Andorra la Vella 42.51 1.52
+Monaco | Monaco 43.74 7.42
+Liechtenstein | Vaduz 47.14 9.52
+San Marino | San Marino 43.94 12.45
+Vatican | Vatican City 41.90 12.45
+# ---------- ASIA ----------
+Turkey | Istanbul 41.01 28.98 | Ankara 39.93 32.86 | Cappadocia 38.64 34.83 | Izmir 38.42 27.14 | Antalya 36.90 30.70
+Georgia | Tbilisi 41.72 44.79 | Batumi 41.65 41.64
+Armenia | Yerevan 40.18 44.51
+Azerbaijan | Baku 40.41 49.87
+Israel | Jerusalem 31.77 35.22 | Tel Aviv 32.09 34.78 | Haifa 32.79 34.99
+Palestine | Bethlehem 31.70 35.20 | Ramallah 31.90 35.20
+Jordan | Amman 31.95 35.93 | Petra 30.33 35.44 | Aqaba 29.53 35.01
+Lebanon | Beirut 33.89 35.50 | Byblos 34.12 35.65
+Syria | Damascus 33.51 36.29 | Aleppo 36.20 37.16
+Iraq | Baghdad 33.31 44.37 | Erbil 36.19 44.01
+Iran | Tehran 35.69 51.39 | Isfahan 32.65 51.67 | Shiraz 29.59 52.58
+Saudi Arabia | Riyadh 24.71 46.68 | Jeddah 21.49 39.19 | Mecca 21.39 39.86
+United Arab Emirates | Dubai 25.20 55.27 | Abu Dhabi 24.45 54.38
+Qatar | Doha 25.29 51.53
+Kuwait | Kuwait City 29.38 47.99
+Bahrain | Manama 26.23 50.59
+Oman | Muscat 23.59 58.41 | Salalah 17.02 54.09
+Yemen | Sana'a 15.37 44.19 | Socotra 12.50 53.87
+Kazakhstan | Almaty 43.24 76.89 | Astana 51.17 71.43
+Uzbekistan | Samarkand 39.65 66.96 | Tashkent 41.30 69.24 | Bukhara 39.77 64.42
+Kyrgyzstan | Bishkek 42.87 74.59 | Karakol 42.49 78.39
+Tajikistan | Dushanbe 38.56 68.79
+Turkmenistan | Ashgabat 37.96 58.33
+Afghanistan | Kabul 34.53 69.17 | Herat 34.35 62.20
+Pakistan | Islamabad 33.68 73.05 | Lahore 31.55 74.34 | Karachi 24.86 67.01
+India | Delhi 28.61 77.21 | Mumbai 19.08 72.88 | Jaipur 26.91 75.79 | Kolkata 22.57 88.36 | Bengaluru 12.97 77.59 | Chennai 13.08 80.27 | Goa 15.50 73.83 | Varanasi 25.32 83.01 | Agra 27.18 78.02
+Nepal | Kathmandu 27.72 85.32 | Pokhara 28.21 83.99
+Bhutan | Thimphu 27.47 89.64 | Paro 27.43 89.41
+Bangladesh | Dhaka 23.81 90.41 | Chittagong 22.36 91.78
+Sri Lanka | Colombo 6.93 79.86 | Kandy 7.29 80.63
+Maldives | Malé 4.18 73.51
+Myanmar | Yangon 16.84 96.17 | Bagan 21.17 94.86 | Mandalay 21.97 96.08
+Thailand | Bangkok 13.76 100.50 | Chiang Mai 18.79 98.98 | Phuket 7.88 98.39
+Laos | Vientiane 17.97 102.60 | Luang Prabang 19.89 102.13
+Cambodia | Phnom Penh 11.56 104.93 | Siem Reap 13.36 103.86
+Vietnam | Hanoi 21.03 105.85 | Ho Chi Minh City 10.82 106.63 | Da Nang 16.05 108.20 | Hội An 15.88 108.34
+Malaysia | Kuala Lumpur 3.14 101.69 | George Town 5.41 100.33 | Kota Kinabalu 5.98 116.07
+Singapore | Singapore 1.35 103.82
+Brunei | Bandar Seri Begawan 4.89 114.94
+Indonesia | Jakarta 6.21 106.85 | Bali (Denpasar) -8.65 115.22 | Yogyakarta -7.80 110.36 | Surabaya -7.25 112.75 | Makassar -5.15 119.43 | Medan 3.59 98.67
+Timor-Leste | Dili -8.56 125.57
+Philippines | Manila 14.60 120.98 | Cebu 10.32 123.89 | Palawan 9.83 118.74 | Davao 7.07 125.61
+China | Beijing 39.90 116.41 | Shanghai 31.23 121.47 | Xi'an 34.34 108.94 | Chengdu 30.57 104.07 | Guangzhou 23.13 113.26 | Shenzhen 22.54 114.06 | Guilin 25.27 110.29 | Lhasa 29.65 91.17 | Ürümqi 43.83 87.62 | Harbin 45.80 126.53
+Hong Kong | Hong Kong 22.32 114.17
+Macao | Macao 22.20 113.55
+Taiwan | Taipei 25.03 121.57 | Kaohsiung 22.63 120.30
+Mongolia | Ulaanbaatar 47.89 106.91 | Karakorum 47.20 102.83
+South Korea | Seoul 37.57 126.98 | Busan 35.18 129.08 | Jeju 33.50 126.53
+North Korea | Pyongyang 39.04 125.76
+Japan | Tokyo 35.68 139.69 | Kyoto 35.01 135.77 | Osaka 34.69 135.50 | Hiroshima 34.39 132.45 | Sapporo 43.06 141.35 | Fukuoka 33.59 130.40 | Okinawa (Naha) 26.21 127.68
+# ---------- AFRICA ----------
+Morocco | Marrakech 31.63 -8.01 | Casablanca 33.57 -7.59 | Fez 34.03 -5.00 | Chefchaouen 35.17 -5.27
+Algeria | Algiers 36.75 3.06 | Oran 35.70 -0.64
+Tunisia | Tunis 36.81 10.18 | Djerba 33.81 10.86
+Libya | Tripoli 32.89 13.19 | Leptis Magna 32.64 14.29
+Egypt | Cairo 30.04 31.24 | Luxor 25.69 32.64 | Alexandria 31.20 29.92 | Aswan 24.09 32.90 | Sharm El Sheikh 27.91 34.33
+Sudan | Khartoum 15.50 32.56 | Meroë 16.94 33.73
+S. Sudan | Juba 4.85 31.58
+Eritrea | Asmara 15.34 38.93
+Ethiopia | Addis Ababa 9.03 38.74 | Lalibela 12.03 39.04
+Djibouti | Djibouti 11.59 43.15
+Somalia | Mogadishu 2.05 45.32
+Kenya | Nairobi 1.29 36.82 | Mombasa -4.04 39.67 | Masai Mara -1.50 35.14
+Uganda | Kampala 0.35 32.58 | Jinja 0.42 33.20
+Rwanda | Kigali -1.95 30.06
+Burundi | Bujumbura -3.38 29.36
+Tanzania | Zanzibar -6.16 39.19 | Dar es Salaam -6.79 39.21 | Arusha -3.37 36.68 | Dodoma -6.16 35.75
+Dem. Rep. Congo | Kinshasa -4.44 15.27 | Goma -1.68 29.22
+Congo | Brazzaville -4.27 15.28
+Gabon | Libreville 0.42 9.47
+Eq. Guinea | Malabo 3.75 8.78
+Cameroon | Yaoundé 3.85 11.50 | Douala 4.05 9.77
+Central African Rep. | Bangui 4.36 18.56
+Chad | N'Djamena 12.13 15.06
+Niger | Niamey 13.51 2.11 | Agadez 16.97 7.99
+Nigeria | Lagos 6.52 3.38 | Abuja 9.08 7.40 | Kano 12.00 8.52
+Benin | Cotonou 6.37 2.39 | Ouidah 6.37 2.09
+Togo | Lomé 6.13 1.22
+Ghana | Accra 5.60 -0.19 | Kumasi 6.69 -1.62 | Cape Coast 5.11 -1.25
+Côte d'Ivoire | Abidjan 5.36 -4.01 | Yamoussoukro 6.82 -5.28
+Burkina Faso | Ouagadougou 12.37 -1.52
+Mali | Bamako 12.64 -8.00 | Timbuktu 16.77 -3.01
+Mauritania | Nouakchott 18.07 -15.96
+Senegal | Dakar 14.72 -17.47 | Saint-Louis 16.02 -16.49
+Gambia | Banjul 13.45 -16.58
+Guinea-Bissau | Bissau 11.86 -15.60
+Guinea | Conakry 9.64 -13.58
+Sierra Leone | Freetown 8.48 -13.23
+Liberia | Monrovia 6.30 -10.80
+Cabo Verde | Praia 14.93 -23.51 | Mindelo 16.89 -24.98
+Angola | Luanda -8.84 13.23 | Lubango -14.92 13.49
+Zambia | Lusaka -15.39 28.32 | Livingstone -17.85 25.86
+Zimbabwe | Harare -17.83 31.05 | Victoria Falls -17.93 25.83
+Malawi | Lilongwe -13.96 33.77 | Cape Maclear -14.02 34.83
+Mozambique | Maputo -25.97 32.57 | Vilankulo -22.00 35.31
+Namibia | Windhoek -22.56 17.08 | Swakopmund -22.68 14.53
+Botswana | Gaborone -24.63 25.91 | Maun -19.99 23.42
+South Africa | Cape Town -33.92 18.42 | Johannesburg -26.20 28.05 | Durban -29.86 31.02 | Kruger Park -24.00 31.55
+eSwatini | Mbabane -26.31 31.14
+Lesotho | Maseru -29.31 27.48
+Madagascar | Antananarivo -18.88 47.51 | Nosy Be -13.31 48.26
+Mauritius | Port Louis -20.16 57.50
+Seychelles | Victoria -4.62 55.45
+Comoros | Moroni -11.70 43.26
+W. Sahara | Dakhla 23.68 -15.96
+# ---------- NORTH AMERICA ----------
+Canada | Toronto 43.65 -79.38 | Vancouver 49.28 -123.12 | Montréal 45.50 -73.57 | Banff 51.18 -115.57 | Calgary 51.05 -114.07 | Québec City 46.81 -71.21 | Halifax 44.65 -63.57 | Ottawa 45.42 -75.70 | Yellowknife 62.45 -114.37
+United States of America | New York 40.71 -74.01 | Los Angeles 34.05 -118.24 | San Francisco 37.77 -122.42 | Chicago 41.88 -87.63 | Miami 25.76 -80.19 | Las Vegas 36.17 -115.14 | Seattle 47.61 -122.33 | Washington D.C. 38.91 -77.04 | New Orleans 29.95 -90.07 | Boston 42.36 -71.06 | Austin 30.27 -97.74 | Denver 39.74 -104.99 | Honolulu 21.31 -157.86 | Anchorage 61.22 -149.90 | Orlando 28.54 -81.38 | Grand Canyon 36.11 -112.11
+Mexico | Mexico City 19.43 -99.13 | Cancún 21.16 -86.85 | Oaxaca 17.07 -96.73 | Guadalajara 20.66 -103.35 | Mérida 20.97 -89.62 | Tulum 20.21 -87.47
+Greenland | Nuuk 64.18 -51.72 | Ilulissat 69.22 -51.10
+Guatemala | Guatemala City 14.63 -90.51 | Antigua Guatemala 14.56 -90.73 | Tikal 17.22 -89.62
+Belize | Belize City 17.50 -88.20 | Caye Caulker 17.74 -88.02
+Honduras | Tegucigalpa 14.07 -87.19 | Roatán 16.32 -86.53
+El Salvador | San Salvador 13.69 -89.22
+Nicaragua | Granada 11.93 -85.96 | Managua 12.13 -86.25
+Costa Rica | San José 9.93 -84.08 | Monteverde 10.30 -84.82
+Panama | Panama City 8.98 -79.52 | Bocas del Toro 9.34 -82.24
+Cuba | Havana 23.11 -82.37 | Trinidad 21.80 -79.98 | Santiago de Cuba 20.02 -75.83
+Jamaica | Kingston 17.97 -76.79 | Montego Bay 18.48 -77.92
+Haiti | Port-au-Prince 18.59 -72.31
+Dominican Rep. | Santo Domingo 18.49 -69.93 | Punta Cana 18.58 -68.40
+Puerto Rico | San Juan 18.47 -66.11
+Bahamas | Nassau 25.05 -77.35
+Trinidad and Tobago | Port of Spain 10.66 -61.51
+Barbados | Bridgetown 13.10 -59.61
+Saint Lucia | Castries 14.01 -60.99
+Aruba | Oranjestad 12.52 -70.03
+Curaçao | Willemstad 12.11 -68.93
+# ---------- SOUTH AMERICA ----------
+Brazil | Rio de Janeiro -22.91 -43.17 | São Paulo -23.55 -46.63 | Salvador -12.97 -38.51 | Brasília -15.79 -47.88 | Manaus -3.12 -60.02 | Florianópolis -27.60 -48.55 | Recife -8.05 -34.88 | Foz do Iguaçu -25.55 -54.59
+Argentina | Buenos Aires -34.60 -58.38 | Mendoza -32.89 -68.83 | Bariloche -41.13 -71.31 | Ushuaia -54.80 -68.30 | Salta -24.79 -65.41 | El Calafate -50.34 -72.26
+Chile | Santiago -33.45 -70.67 | Valparaíso -33.05 -71.62 | San Pedro de Atacama -22.91 -68.20 | Punta Arenas -53.16 -70.91 | Easter Island -27.11 -109.35
+Uruguay | Montevideo -34.90 -56.16 | Punta del Este -34.96 -54.95
+Paraguay | Asunción -25.26 -57.58 | Encarnación -27.33 -55.87
+Bolivia | La Paz -16.50 -68.15 | Uyuni -20.46 -66.82 | Sucre -19.04 -65.26
+Peru | Lima -12.05 -77.04 | Cusco -13.53 -71.97 | Machu Picchu -13.16 -72.55 | Arequipa -16.41 -71.54 | Iquitos -3.75 -73.25
+Ecuador | Quito -0.18 -78.47 | Guayaquil -2.17 -79.92 | Galápagos -0.74 -90.31
+Colombia | Bogotá 4.71 -74.07 | Medellín 6.24 -75.58 | Cartagena 10.39 -75.48 | Cali 3.45 -76.53
+Venezuela | Caracas 10.48 -66.90 | Mérida, Venezuela 8.59 -71.15 | Angel Falls 5.97 -62.54
+Guyana | Georgetown 6.80 -58.16
+Suriname | Paramaribo 5.85 -55.20
+Falkland Is. | Stanley -51.70 -57.85
+# ---------- OCEANIA ----------
+Australia | Sydney -33.87 151.21 | Melbourne -37.81 144.96 | Brisbane -27.47 153.03 | Perth -31.95 115.86 | Adelaide -34.93 138.60 | Darwin -12.46 130.84 | Cairns -16.92 145.77 | Uluru -25.34 131.04 | Hobart -42.88 147.33 | Alice Springs -23.70 133.88
+New Zealand | Auckland -36.85 174.76 | Wellington -41.29 174.78 | Queenstown -45.03 168.66 | Christchurch -43.53 172.64 | Rotorua -38.14 176.25
+Papua New Guinea | Port Moresby -9.44 147.18 | Mount Hagen -5.86 144.23
+Fiji | Suva -18.14 178.44 | Nadi -17.80 177.42
+Solomon Is. | Honiara -9.43 159.95
+Vanuatu | Port Vila -17.73 168.32
+New Caledonia | Nouméa -22.28 166.46
+Samoa | Apia -13.83 -171.76
+Tonga | Nukuʻalofa -21.14 -175.20
+Fr. Polynesia | Tahiti (Papeete) -17.54 -149.57 | Bora Bora -16.50 -151.74
+Palau | Koror 7.34 134.48
+Micronesia | Pohnpei 6.96 158.21
+Marshall Is. | Majuro 7.09 171.38
+Kiribati | Tarawa 1.45 173.03
+Cook Is. | Rarotonga -21.23 -159.78
+Guam | Hagåtña 13.47 144.75
+# ---------- ANTARCTICA ----------
+Antarctica | McMurdo Station -77.85 166.67 | Antarctic Peninsula -64.80 -62.90 | South Pole -90.00 0.00
