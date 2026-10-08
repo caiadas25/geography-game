@@ -165,6 +165,7 @@ function largestPoly(f){
 }
 const mainPoly = features.map(largestPoly);
 
+let geomDirty=true;                       // projected geometry must be rebuilt (layout/resize); otherwise paintAll leaves existing paths alone
 function layout(){
   W=innerWidth; H=innerHeight;
   svg.attr('viewBox',`0 0 ${W} ${H}`);
@@ -174,8 +175,14 @@ function layout(){
   zoomG.select('.grat').attr('d',path(graticule));
   land.attr('d',path);
   clipSrc.selectAll('path').attr('d',(f)=>path(f));
-  dots.attr('data-x',c=>c.x=projection([c.lon,c.lat])[0]).attr('data-y',c=>c.y=projection([c.lon,c.lat])[1]);
-  dots.each(a=>{ let m=1e9; for(const b of cities){ if(b!==a){ const d=Math.hypot(a.x-b.x,a.y-b.y); if(d<m) m=d; } } a.near=m; });
+  geomDirty=true;
+  cities.forEach(c=>{ const p=projection([c.lon,c.lat]); c.x=p[0]; c.y=p[1]; });
+  // nearest neighbour within 2*HIT_R, via a spatial grid (only crowding below that matters for click areas)
+  const CELL=HIT_R*2, grid=new Map(), key=(i,j)=>i*100003+j;
+  cities.forEach(c=>{ const k=key(Math.floor(c.x/CELL),Math.floor(c.y/CELL)); (grid.get(k)||grid.set(k,[]).get(k)).push(c); });
+  cities.forEach(a=>{ let m=CELL; const gi=Math.floor(a.x/CELL), gj=Math.floor(a.y/CELL);
+    for(let i=gi-1;i<=gi+1;i++) for(let j=gj-1;j<=gj+1;j++){ const l=grid.get(key(i,j)); if(l) for(const b of l){ if(b!==a){ const d=Math.hypot(a.x-b.x,a.y-b.y); if(d<m) m=d; } } }
+    a.near=m; });
   dots.sort((a,b)=>b.i-a.i);              // earlier (bigger) cities sit on top of near-duplicates
   zoom.translateExtent([[-W*0.25,-H*0.25],[W*1.25,H*1.25]]);
   applyTransform(d3.zoomTransform(svg.node()));
@@ -183,17 +190,28 @@ function layout(){
 }
 
 /* ---------- zoom ---------- */
-const zoom = d3.zoom().scaleExtent([1,70]).on('zoom',e=>applyTransform(e.transform));
+const zoom = d3.zoom().scaleExtent([1,70]).on('zoom',e=>scheduleTransform(e.transform));
 svg.call(zoom).on('dblclick.zoom',null);
+let dotNodes=null;
 function applyTransform(t){
   K=t.k;
   zoomG.attr('transform',t);
-  dots.attr('transform',c=>`translate(${c.x},${c.y}) scale(${1/K})`);
-  dots.select('.hit').attr('r',c=>Math.max(3,Math.min(HIT_R,c.near*K/2)));   // shrink hit area where cities crowd
+  if(!dotNodes) dotNodes=dots.nodes();
+  const m=40, x0=-m, x1=W+m, y0=-m, y1=H+m;
+  for(let n=0;n<dotNodes.length;n++){            // only touch dots that are on screen
+    const el=dotNodes[n], c=el.__data__, sx=t.x+t.k*c.x, sy=t.y+t.k*c.y;
+    if(!(sx>x0&&sx<x1&&sy>y0&&sy<y1)){ if(c.vis!==false){ el.style.display='none'; c.vis=false; } continue; }
+    if(c.vis!==true){ el.style.display=''; c.vis=true; }
+    el.setAttribute('transform',`translate(${c.x.toFixed(2)},${c.y.toFixed(2)}) scale(${(1/K).toFixed(4)})`);
+    const r=Math.max(3,Math.min(HIT_R,c.near*K/2));   // shrink the click area where cities crowd
+    if(c.hr===undefined||Math.abs(r-c.hr)>0.4){ c.hr=r; el.lastElementChild.previousElementSibling.setAttribute('r',r.toFixed(1)); }
+  }
   nameG.selectAll('text').attr('transform',function(){ const d=this.__data__; return `translate(${d.x},${d.y}) scale(${1/K})`; });
   const f=Math.max(1,1100/W);             // narrower screens need more zoom before labels stop colliding
   svg.classed('lv0',K<2).classed('lv1',K>=2.3*f).classed('lv2',K>=8*f).classed('lv3',K>=22*f);
 }
+let pendingT=null, tRaf=0;                // coalesce wheel/drag events into one update per frame
+function scheduleTransform(t){ pendingT=t; if(!tRaf) tRaf=requestAnimationFrame(()=>{ tRaf=0; applyTransform(pendingT); }); }
 const toScreen = (lon,lat) => { const p=projection([lon,lat]); const t=d3.zoomTransform(svg.node()); return t.apply(p); };
 function flyTo(lon,lat,k,ms=1100){
   const [px,py]=projection([lon,lat]);
@@ -251,7 +269,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
   all.each(function(d){
     const sel = d3.select(this).selectAll('path.glow').data(d.list,c=>c.i);
     sel.exit().remove();
-    sel.attr('d',c=>circlePath(c,radiusOf(c)));
+    if(geomDirty) sel.attr('d',c=>circlePath(c,radiusOf(c)));
     const en = sel.enter().append('path').attr('class','glow').attr('fill',c=>`url(#glow-${gid(c.cont)})`);
     if(animate){
       // light blooms out with an overshoot, then settles; a white-hot flash fades behind it
@@ -265,7 +283,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
   const ld = features.filter(f=>lit.has(f.properties.name));
   const lsel = litG.selectAll('path.lit').data(ld,f=>f.properties.name);
   lsel.exit().remove();
-  lsel.attr('d',path);
+  if(geomDirty) lsel.attr('d',path);
   const len = lsel.enter().append('path').attr('class','lit').attr('d',path)
     .attr('fill',f=>`url(#lit-${gid(contOf(f.properties.name))})`)
     .attr('stroke',f=>COLORS[contOf(f.properties.name)]);
@@ -292,7 +310,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
     g.append('path').attr('class','contLine outer').attr('d',path(m));
     g.append('path').attr('class','contLine inner').attr('d',path(m));
   });
-  contG.selectAll('g.cont').each(function(k){ d3.select(this).selectAll('path').attr('d',path(outlineFor(k))); });
+  if(geomDirty) contG.selectAll('g.cont').each(function(k){ d3.select(this).selectAll('path').attr('d',path(outlineFor(k))); });
   if(animate) cen.style('opacity',0).transition().duration(1600).style('opacity',1);
 
   if(newCity!==null){
@@ -300,6 +318,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
     setTimeout(()=>dots.classed('bounce',false),1000);
   }
   prev = { cities:new Set(set), lit, conts:new Set(D.conts) };
+  geomDirty=false;
 }
 
 /* =========================================================
