@@ -245,3 +245,6 @@ kbd{font:500 11px var(--font);color:#6f7b9f;border:1px solid var(--line);border-
 .onb .actions .primary{flex:1.4}
 .onb .twinkle{animation:twk 2.4s ease-in-out infinite}
 @keyframes twk{50%{opacity:.45}}
+/* major city names a touch larger than minor ones */
+.dot text{font-size:12px}
+.dot.minor text{font-size:10.5px}

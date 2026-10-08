@@ -192,7 +192,7 @@ function applyTransform(t){
   dots.select('.hit').attr('r',c=>Math.max(3,Math.min(HIT_R,c.near*K/2)));   // shrink hit area where cities crowd
   nameG.selectAll('text').attr('transform',function(){ const d=this.__data__; return `translate(${d.x},${d.y}) scale(${1/K})`; });
   const f=Math.max(1,1100/W);             // narrower screens need more zoom before labels stop colliding
-  svg.classed('lv0',K<2).classed('lv1',K>=2.3*f).classed('lv2',K>=5.5*f).classed('lv3',K>=11*f);
+  svg.classed('lv0',K<2).classed('lv1',K>=2.3*f).classed('lv2',K>=8*f).classed('lv3',K>=22*f);
 }
 const toScreen = (lon,lat) => { const p=projection([lon,lat]); const t=d3.zoomTransform(svg.node()); return t.apply(p); };
 function flyTo(lon,lat,k,ms=1100){
@@ -749,8 +749,14 @@ const ONB_KEY='constellate.onboarded';
 const ONB_ART={
   search:`<svg viewBox="0 0 300 150"><rect x="30" y="52" width="240" height="46" rx="23" fill="rgba(255,255,255,.06)" stroke="rgba(124,240,212,.45)"/><circle cx="62" cy="75" r="8" fill="none" stroke="#7cf0d4" stroke-width="2"/><path d="M68 81l6 6" stroke="#7cf0d4" stroke-width="2" stroke-linecap="round"/><text x="86" y="80" fill="#e8edff" font-size="15" font-family="Inter,sans-serif">Lisbon</text><circle cx="212" cy="75" r="4" fill="#fff"/><circle cx="212" cy="75" r="12" fill="#7cf0d4" opacity=".25" class="twinkle"/></svg>`,
   stars:`<svg viewBox="0 0 300 150"><g stroke="#7cf0d4" stroke-opacity=".6" stroke-width="1.5" fill="none" stroke-linecap="round"><path d="M50 108L100 50L158 82L214 36L252 96"/><path d="M158 82L148 124"/></g><g fill="#fff"><circle cx="100" cy="50" r="5"/><circle cx="158" cy="82" r="6"/><circle cx="148" cy="124" r="4.5"/><circle cx="252" cy="96" r="5"/></g><circle cx="214" cy="36" r="6" fill="#ffd479"/><circle cx="50" cy="108" r="4.5" fill="#7cf0d4"/><g fill="#7cf0d4" opacity=".2" class="twinkle"><circle cx="158" cy="82" r="18"/><circle cx="214" cy="36" r="16"/><circle cx="100" cy="50" r="14"/></g></svg>`,
-  unlock:`<svg viewBox="0 0 300 150"><path d="M40 98c10-30 48-52 84-46 30 5 44 24 74 20 26-4 44 6 62 28-20 16-52 22-86 16-34-6-72 14-104 4z" fill="rgba(124,240,212,.22)" stroke="#7cf0d4" stroke-opacity=".7"/><g fill="#fff"><circle cx="96" cy="76" r="4"/><circle cx="140" cy="62" r="4"/><circle cx="184" cy="84" r="4"/><circle cx="226" cy="96" r="4"/></g><text x="150" y="30" text-anchor="middle" fill="#ffd479" font-size="15" font-weight="700" font-family="Sora,sans-serif">⚑ Country unlocked</text></svg>`,
-  share:`<svg viewBox="0 0 300 150"><rect x="55" y="22" width="190" height="106" rx="12" fill="#0a1330" stroke="rgba(124,240,212,.5)"/><g stroke="#7cf0d4" stroke-opacity=".55" fill="none"><path d="M85 100L120 60L160 78L200 48L222 92"/></g><g fill="#fff"><circle cx="120" cy="60" r="3.5"/><circle cx="160" cy="78" r="4"/><circle cx="222" cy="92" r="3.5"/></g><circle cx="200" cy="48" r="4" fill="#ffd479"/><circle cx="85" cy="100" r="3.5" fill="#7cf0d4"/><text x="150" y="44" text-anchor="middle" fill="#8c97b8" font-size="9" font-family="Inter,sans-serif">my constellation</text></svg>`
+  unlock:()=>{                              // the real outline of the UK, with a few real cities lit
+    const uk=featByName.get('United Kingdom').f;
+    const pr=d3.geoMercator().fitExtent([[24,8],[150,142]],uk), pa=d3.geoPath(pr);
+    const dots=['London','Manchester','Edinburgh','Cardiff','Belfast'].map(n=>cities.find(c=>c.n===n&&c.c==='United Kingdom')).filter(Boolean)
+      .map(c=>{ const [x,y]=pr([c.lon,c.lat]); return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" fill="#7cf0d4" opacity=".22" class="twinkle"/><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.6" fill="#fff"/>`; }).join('');
+    return `<svg viewBox="0 0 300 150"><path d="${pa(uk)}" fill="rgba(124,240,212,.24)" stroke="#7cf0d4" stroke-opacity=".8" stroke-linejoin="round"/>${dots}<text x="172" y="66" fill="#ffd479" font-size="15" font-weight="700" font-family="Sora,sans-serif">⚑ Country</text><text x="172" y="86" fill="#ffd479" font-size="15" font-weight="700" font-family="Sora,sans-serif">unlocked</text><text x="172" y="106" fill="#8c97b8" font-size="11" font-family="Inter,sans-serif">United Kingdom</text></svg>`;
+  },
+  share:`<svg viewBox="0 0 300 150"><rect x="55" y="22" width="190" height="106" rx="12" fill="#0a1330" stroke="rgba(124,240,212,.5)"/><g stroke="#7cf0d4" stroke-opacity=".55" fill="none"><path d="M85 100L120 60L160 78L200 48L222 92"/></g><g fill="#fff"><circle cx="120" cy="60" r="3.5"/><circle cx="160" cy="78" r="4"/><circle cx="222" cy="92" r="3.5"/></g><circle cx="200" cy="48" r="4" fill="#ffd479"/><circle cx="85" cy="100" r="3.5" fill="#7cf0d4"/></svg>`
 };
 const ONB_STEPS=[
   {art:'search', title:'Welcome to Constellate', text:"A map of everywhere you've been. Search any city you've visited and it lights up on the world map."},
@@ -761,7 +767,7 @@ const ONB_STEPS=[
 let onbStep=0;
 function renderOnboarding(){
   const st=ONB_STEPS[onbStep], last=onbStep===ONB_STEPS.length-1;
-  $('onbArt').innerHTML=ONB_ART[st.art]; $('onbTitle').textContent=st.title; $('onbText').textContent=st.text;
+  const art=ONB_ART[st.art]; $('onbArt').innerHTML=typeof art==='function'?art():art; $('onbTitle').textContent=st.title; $('onbText').textContent=st.text;
   $('onbDots').innerHTML=ONB_STEPS.map((_,i)=>`<i class="${i===onbStep?'on':''}"></i>`).join('');
   $('onbBack').style.visibility=onbStep?'visible':'hidden';
   $('onbNext').textContent=last?"Let's go ✦":'Next';
