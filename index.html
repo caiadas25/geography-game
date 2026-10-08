@@ -77,6 +77,14 @@
   Share my map
 </button>
 
+<div id="perf" hidden aria-hidden="true">
+  <div class="pRow"><b id="pFps">--</b><span>fps</span><b id="pMs">--</b><span>ms/frame</span></div>
+  <canvas id="pGraph" width="180" height="40"></canvas>
+  <div class="pRow sm"><span>worst</span><b id="pWorst">--</b><span>1% low</span><b id="pLow">--</b></div>
+  <div class="pRow sm"><span>DOM nodes</span><b id="pDom">--</b><span>dots shown</span><b id="pDots">--</b></div>
+  <div class="pHint">press P to hide</div>
+</div>
+
 <div id="ribbon" class="glass" hidden>
   <span id="ribbonText"></span>
   <button id="ribbonBtn">Start your own map</button>

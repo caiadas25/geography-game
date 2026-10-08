@@ -248,3 +248,15 @@ kbd{font:500 11px var(--font);color:#6f7b9f;border:1px solid var(--line);border-
 /* major city names a touch larger than minor ones */
 .dot text{font-size:12px}
 .dot.minor text{font-size:10.5px}
+
+/* performance meter (toggle with P, or open the page with ?perf) */
+#perf{position:fixed;left:12px;bottom:12px;z-index:60;padding:10px 12px;border-radius:12px;background:rgba(5,8,18,.92);border:1px solid var(--line);
+  font:600 11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#8f9bbf;pointer-events:none;min-width:196px}
+#perf b{color:#e8edff;font-weight:700}
+#perf .pRow{display:flex;gap:5px;align-items:baseline}
+#perf .pRow:first-child b{font-size:18px}
+#perf .pRow.sm{justify-content:space-between}
+#perf .pRow.sm b{margin-right:6px}
+#perf canvas{display:block;width:180px;height:40px;margin:4px 0}
+#perf .pHint{opacity:.5;margin-top:2px}
+#perf .bad{color:#ff8aa0}#perf .ok{color:#ffd479}#perf .good{color:#7cf0d4}

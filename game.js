@@ -847,6 +847,44 @@ function boot(){
   paintG.style('opacity',0).transition().duration(1200).style('opacity',1);
   let rt; addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ layout(); sizeCanvas(); },120); });
 }
+
+/* ---------- performance meter: fps + frame time, toggle with P (or load the page with ?perf) ---------- */
+const perf = (()=>{
+  const box=$('perf'), gc=$('pGraph').getContext('2d'), N=120, times=new Float32Array(N);
+  let on=false, raf=0, last=0, idx=0, filled=0, acc=0, accN=0, lastReport=0;
+  const cls=(el,ms)=>{ el.className = ms>33 ? 'bad' : ms>20 ? 'ok' : 'good'; };
+  function frame(t){
+    if(!on) return;
+    if(last){ const dt=t-last; times[idx]=dt; idx=(idx+1)%N; filled=Math.min(filled+1,N); acc+=dt; accN++; }
+    last=t;
+    if(t-lastReport>500 && accN){                       // refresh the numbers twice a second
+      const avg=acc/accN, fps=1000/avg; acc=0; accN=0; lastReport=t;
+      const arr=Array.from(times.subarray(0,filled)).sort((a,b)=>a-b);
+      const worst=arr[arr.length-1]||0, low=arr[Math.floor(arr.length*0.99)]||worst;
+      $('pFps').textContent=Math.round(fps); cls($('pFps'),avg);
+      $('pMs').textContent=avg.toFixed(1); cls($('pMs'),avg);
+      $('pWorst').textContent=worst.toFixed(0)+'ms'; $('pLow').textContent=(1000/low).toFixed(0)+'fps';
+      $('pDom').textContent=document.getElementsByTagName('*').length.toLocaleString();
+      $('pDots').textContent=dots.nodes().filter(n=>n.style.display!=='none').length.toLocaleString();
+    }
+    // frame-time graph: one bar per recent frame, red above 33ms (under 30fps), line at 16.7ms
+    const w=180,h=40; gc.clearRect(0,0,w,h);
+    const max=50, bw=w/N;
+    for(let k=0;k<filled;k++){ const v=times[(idx-filled+k+N)%N], bh=Math.min(v,max)/max*h;
+      gc.fillStyle=v>33?'#ff8aa0':v>20?'#ffd479':'#7cf0d4'; gc.fillRect(k*bw,h-bh,Math.max(bw-0.5,1),bh); }
+    gc.fillStyle='rgba(255,255,255,.35)'; gc.fillRect(0,h-16.7/max*h,w,1);
+    raf=requestAnimationFrame(frame);
+  }
+  function set(v){
+    on=v; box.hidden=!v; last=0; idx=0; filled=0; acc=0; accN=0; lastReport=0;
+    cancelAnimationFrame(raf); if(v) raf=requestAnimationFrame(frame);   // the loop only runs while the meter is visible
+    try{ localStorage.setItem('constellate.perf',v?'1':'0'); }catch(e){}
+  }
+  addEventListener('keydown',e=>{ if((e.key==='p'||e.key==='P') && !e.metaKey && !e.ctrlKey && !e.altKey && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) set(!on); });
+  let want=false; try{ want = new URLSearchParams(location.search).has('perf') || localStorage.getItem('constellate.perf')==='1'; }catch(e){}
+  if(want) set(true);
+  return {set};
+})();
 boot();
 window.__constellate = { visited, cities, toggleCity, derive, get D(){return D;} };   // handy for debugging
 })();
