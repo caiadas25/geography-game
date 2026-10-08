@@ -824,11 +824,20 @@ $('styleRow').onclick=e=>{ const k=e.target.dataset&&e.target.dataset.style; if(
 $('modalClose').onclick=closeModal;
 $('modal').addEventListener('mousedown',e=>{ if(e.target===$('modal')) closeModal(); });
 $('shareName').addEventListener('input',()=>{ settings.name=$('shareName').value.trim(); save(); refreshShare(); });
+async function copyText(text){            // returns true only if something was really copied
+  try{ if(navigator.clipboard&&window.isSecureContext){ await navigator.clipboard.writeText(text); return true; } }catch(e){}
+  const ta=document.createElement('textarea'); ta.value=text; ta.setAttribute('readonly','');
+  ta.style.cssText='position:fixed;top:0;left:0;opacity:0;pointer-events:none'; document.body.appendChild(ta);
+  ta.focus(); ta.select(); ta.setSelectionRange(0,text.length);
+  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); return ok;
+}
 $('btnCopy').onclick=async()=>{
-  const text=`${shareMessage()}\n${shareUrl()}`;
-  try{ await navigator.clipboard.writeText(text); }catch(e){ $('shareLink').select(); document.execCommand('copy'); }
-  $('btnCopy').textContent='Copied ✓'; setTimeout(()=>$('btnCopy').textContent='Copy link',1800);
+  const ok=await copyText(`${shareMessage()}\n${shareUrl()}`), b=$('btnCopy');
+  if(!ok){ const l=$('shareLink'); l.focus(); l.select(); }          // leave the link selected so it can be copied by hand
+  b.textContent=ok?'Copied ✓':'Press ⌘/Ctrl+C';
+  setTimeout(()=>b.textContent='Copy link',2200);
 };
+$('shareLink').addEventListener('focus',e=>e.target.select());
 $('btnNative').onclick=()=>navigator.share({title:'Constellate',text:shareMessage(),url:shareUrl()}).catch(()=>{});
 $('btnImage').onclick=()=>{            // render a crisp 2x copy for download
   const big=document.createElement('canvas'); drawCard(big,2);
