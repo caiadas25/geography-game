@@ -68,6 +68,7 @@
   <button id="btnZoomOut" class="round" aria-label="Zoom out">−</button>
   <button id="btnHome" class="round" aria-label="Reset view" title="Reset view">⌂</button>
   <button id="btnSound" class="round" aria-label="Toggle sound" title="Sound">♪</button>
+  <button id="btnHelp" class="round" aria-label="How it works" title="How it works">?</button>
   <button id="btnReset" class="round" aria-label="Reset my map" title="Reset my map">↺</button>
 </div>
 
@@ -84,6 +85,20 @@
 <div id="toasts"></div>
 <div id="banner"><div class="k"></div><div class="t"></div><div class="s"></div></div>
 <div id="tip"></div>
+
+<div id="onboard" class="overlay" hidden>
+  <div class="sheet glass onb" role="dialog" aria-modal="true" aria-labelledby="onbTitle">
+    <button class="x" id="onbClose" aria-label="Skip intro">×</button>
+    <div id="onbArt" aria-hidden="true"></div>
+    <h3 id="onbTitle"></h3>
+    <p id="onbText"></p>
+    <div id="onbDots"></div>
+    <div class="actions">
+      <button id="onbBack" class="ghost">Back</button>
+      <button id="onbNext" class="primary">Next</button>
+    </div>
+  </div>
+</div>
 
 <div id="confirmModal" class="overlay" hidden>
   <div class="sheet glass confirm" role="alertdialog" aria-labelledby="confirmTitle">

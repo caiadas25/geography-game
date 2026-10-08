@@ -10,7 +10,9 @@ const COLORS = {
   'South America':'#8de85f','Oceania':'#3ccbff','Antarctica':'#e6f0ff'
 };
 const GOLD = '#ffd479';
-const PTS = { city:10, country:100, continent:1000 };
+const PTS = { city:10, minor:5, country:100, continent:1000 };
+const MINOR_W = 0.5;                     // a minor city (flag m:1) counts half towards unlocking its country
+const ptsOf = c => c.m ? PTS.minor : PTS.city;
 const RANKS = [[0,'Homebody'],[10,'Day Tripper'],[100,'Wanderer'],[300,'Backpacker'],[800,'Explorer'],
   [2000,'Globetrotter'],[4500,'Nomad'],[9000,'Cartographer'],[16000,'World Walker'],[26000,'Legend']];
 const HIT_R = 16;                        // max click radius (screen px) around a city dot
@@ -27,17 +29,21 @@ const contCountries = new Map();         // continent -> [countries that have ci
 byCountry.forEach((_,name)=>{ const k=CONTINENT[name]; if(!contCountries.has(k)) contCountries.set(k,[]); contCountries.get(k).push(name); });
 const CONTS = [...contCountries.keys()];
 
-const countryNeed = n => n<=3 ? n : Math.min(Math.ceil(n*0.6),5);
+const countryNeedN = n => n<=3 ? n : Math.min(Math.ceil(n*0.6),5);
+// the bar is set by a country's major cities only, so adding minor ones never makes a country harder to unlock
+const countryNeed = name => { const list=byCountry.get(name), majors=list.filter(i=>!cities[i].m).length; return countryNeedN(majors||list.length); };
+const fmt = x => Number.isInteger(x) ? x : x.toFixed(1);
 const contNeed = n => Math.ceil(n*0.75);
 
 function derive(visited){
   const vc = new Map();                  // country -> visited count
-  visited.forEach(i=>{ const c=cities[i].c; vc.set(c,(vc.get(c)||0)+1); });
+  let pts=0;
+  visited.forEach(i=>{ const c=cities[i]; vc.set(c.c,(vc.get(c.c)||0)+(c.m?MINOR_W:1)); pts+=ptsOf(c); });
   const countries = new Set();
-  byCountry.forEach((list,name)=>{ if((vc.get(name)||0) >= countryNeed(list.length)) countries.add(name); });
+  byCountry.forEach((list,name)=>{ if((vc.get(name)||0) >= countryNeed(name)) countries.add(name); });
   const conts = new Set();
   contCountries.forEach((list,k)=>{ if(list.filter(n=>countries.has(n)).length >= contNeed(list.length)) conts.add(k); });
-  const score = visited.size*PTS.city + countries.size*PTS.country + conts.size*PTS.continent;
+  const score = pts + countries.size*PTS.country + conts.size*PTS.continent;
   return { vc, countries, conts, score };
 }
 const rankFor = s => RANKS.reduce((r,x)=> s>=x[0]?x:r, RANKS[0]);
@@ -186,7 +192,7 @@ function applyTransform(t){
   dots.select('.hit').attr('r',c=>Math.max(3,Math.min(HIT_R,c.near*K/2)));   // shrink hit area where cities crowd
   nameG.selectAll('text').attr('transform',function(){ const d=this.__data__; return `translate(${d.x},${d.y}) scale(${1/K})`; });
   const f=Math.max(1,1100/W);             // narrower screens need more zoom before labels stop colliding
-  svg.classed('lv0',K<2).classed('lv1',K>=2.3*f).classed('lv2',K>=5.5*f);
+  svg.classed('lv0',K<2).classed('lv1',K>=2.3*f).classed('lv2',K>=5.5*f).classed('lv3',K>=11*f);
 }
 const toScreen = (lon,lat) => { const p=projection([lon,lat]); const t=d3.zoomTransform(svg.node()); return t.apply(p); };
 function flyTo(lon,lat,k,ms=1100){
@@ -207,6 +213,7 @@ const sleep = ms => new Promise(r=>setTimeout(r,ms));
    Painting
    ========================================================= */
 const circleGen = d3.geoCircle();
+const radiusOf = c => c.m ? CITY_RADIUS*0.5 : CITY_RADIUS;      // minor cities light a smaller patch
 const circlePath = (c,r)=> path(circleGen.center([c.lon,c.lat]).radius(Math.max(r,0.001))());
 const outlineCache = new Map();
 function outlineFor(k){
@@ -229,7 +236,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
   const lit = litSet(D);
 
   // dots
-  dots.classed('on',c=>set.has(c.i));
+  dots.classed('on',c=>set.has(c.i)).classed('minor',c=>!!c.m);
 
   // city glows, clipped to their country
   const groups = new Map();
@@ -244,14 +251,14 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
   all.each(function(d){
     const sel = d3.select(this).selectAll('path.glow').data(d.list,c=>c.i);
     sel.exit().remove();
-    sel.attr('d',c=>circlePath(c,CITY_RADIUS));
+    sel.attr('d',c=>circlePath(c,radiusOf(c)));
     const en = sel.enter().append('path').attr('class','glow').attr('fill',c=>`url(#glow-${gid(c.cont)})`);
     if(animate){
       // light blooms out with an overshoot, then settles; a white-hot flash fades behind it
       en.classed('fresh',true).attr('d',c=>circlePath(c,0.01)).transition().duration(1700).ease(d3.easeBackOut.overshoot(2.6))
-        .attrTween('d',c=>t=>circlePath(c,CITY_RADIUS*Math.max(t,0.001)))
+        .attrTween('d',c=>t=>circlePath(c,radiusOf(c)*Math.max(t,0.001)))
         .on('end',function(){ d3.select(this).classed('fresh',false); });
-    } else en.attr('d',c=>circlePath(c,CITY_RADIUS));
+    } else en.attr('d',c=>circlePath(c,radiusOf(c)));
   });
 
   // fully lit countries
@@ -427,7 +434,7 @@ async function celebrate(c,newCountries,newConts){
   const col=COLORS[c.cont];
   starBurst(x,y,col,16); burst(x,y,col,14,90,.7);
   sfx.city();
-  toast(`✦ ${c.n}<b>+${PTS.city}</b>`,col);
+  toast(`✦ ${c.n}<b>+${ptsOf(c)}</b>`,col);
 
   if(newCountries.length){
     const name=newCountries[0];
@@ -482,13 +489,13 @@ function updateHud(pop=false){
   let best=null;
   byCountry.forEach((list,name)=>{
     if(D.countries.has(name)) return;
-    const need=countryNeed(list.length), have=D.vc.get(name)||0;
+    const need=countryNeed(name), have=D.vc.get(name)||0;
     if(have>0 && (!best || need-have<best.left || (need-have===best.left && have>best.have))) best={name,left:need-have,have,need};
   });
   const nx=$('next');
   if(viewing) nx.innerHTML='Viewing a shared map';
   else if(!set.size) nx.innerHTML='Search the first city you\'ve ever travelled to.';
-  else if(best) nx.innerHTML=`<b>${best.left} more ${best.left===1?'city':'cities'}</b> in ${best.name} to unlock the whole country.`;
+  else if(best) nx.innerHTML=`<b>${Math.ceil(best.left)} more ${Math.ceil(best.left)===1?'city':'cities'}</b> in ${best.name} to unlock the whole country.`;
   else nx.innerHTML='Keep exploring — whole continents are within reach.';
 }
 
@@ -500,8 +507,8 @@ function moveTip(e){ tip.style.left=Math.min(e.clientX,W-200)+'px'; tip.style.to
 function hideTip(){ tip.classList.remove('show'); }
 function countryLine(name){
   const list=byCountry.get(name); if(!list) return CONTINENT[name] ? `<span>${CONTINENT[name]}${D.conts.has(CONTINENT[name])?' · unlocked':''}</span>` : '';
-  const have=D.vc.get(name)||0, need=countryNeed(list.length);
-  return D.countries.has(name) ? '<span>Unlocked ✓</span>' : `<span>${have} / ${need} cities to unlock</span>`;
+  const have=D.vc.get(name)||0, need=countryNeed(name);
+  return D.countries.has(name) ? '<span>Unlocked ✓</span>' : `<span>${fmt(have)} / ${need} cities to unlock</span>`;
 }
 function hoverCountry(e,f){ const n=f.properties.name; tip.innerHTML=`<b>${n}</b><br>${countryLine(n)}`; tip.classList.add('show'); moveTip(e); }
 function hoverCity(e,c){ tip.innerHTML=`<b>${c.n}</b><br><span>${c.c}${visitedHas(c.i)?' · visited':' · click to add'}</span>`; tip.classList.add('show'); moveTip(e); }
@@ -518,9 +525,9 @@ function refreshPanel(){
   const name=panelCountry, list=byCountry.get(name), cont=CONTINENT[name], col=COLORS[cont];
   const p=$('panel'); p.style.setProperty('--c',col);
   $('pTag').textContent=cont; $('pName').textContent=name;
-  const have=D.vc.get(name)||0, need=countryNeed(list.length);
+  const have=D.vc.get(name)||0, need=countryNeed(name), seen=list.filter(i=>active().has(i)).length;
   $('pBar').style.width=Math.min(100,have/need*100)+'%';
-  $('pText').textContent = D.countries.has(name) ? `Country unlocked — ${have} of ${list.length} cities` : `${have} / ${need} cities to unlock this country`;
+  $('pText').textContent = D.countries.has(name) ? `Country unlocked — ${seen} of ${list.length} cities` : `${fmt(have)} / ${need} cities to unlock this country`;
   const box=$('pChips'); box.innerHTML='';
   list.forEach(i=>{ const b=document.createElement('button'); b.textContent=cities[i].n; b.className=active().has(i)?'on':'';
     b.onclick=()=>toggleCity(i); box.appendChild(b); });
@@ -703,7 +710,7 @@ function drawCard(canvas,scale=1,style=settings.cardStyle||'starfield'){
     g.strokeStyle=lg; g.lineWidth=atlas?1:1.3; g.beginPath(); g.moveTo(A.x,A.y); g.lineTo(B.x,B.y); g.stroke();
     if(!atlas){ g.globalAlpha=.18; g.lineWidth=4; g.stroke(); g.globalAlpha=1; } });
   // ---- stars
-  const sized=pts.map(p=>({...p,r:2.4+rnd()*2.6}));
+  const sized=pts.map(p=>({...p,r:(2.4+rnd()*2.6)*(cities[p.i].m?0.65:1)}));
   g.save(); if(!paper&&!atlas) g.globalCompositeOperation='lighter';
   sized.forEach(p=>{
     if(paper){ const c=ink(p.col,.45); g.fillStyle=hexA(c,.18); g.beginPath(); g.arc(p.x,p.y,p.r*2.6,0,6.283); g.fill(); sparkle(g,p.x,p.y,p.r*2.4,c,.9,p.r>3.6); g.fillStyle=c; g.beginPath(); g.arc(p.x,p.y,p.r*.75+.8,0,6.283); g.fill(); return; }
@@ -737,6 +744,39 @@ function refreshShare(){
   $('shareLink').value=shareUrl();
   $('btnNative').hidden=!navigator.share;
 }
+/* ---------- onboarding ---------- */
+const ONB_KEY='constellate.onboarded';
+const ONB_ART={
+  search:`<svg viewBox="0 0 300 150"><rect x="30" y="52" width="240" height="46" rx="23" fill="rgba(255,255,255,.06)" stroke="rgba(124,240,212,.45)"/><circle cx="62" cy="75" r="8" fill="none" stroke="#7cf0d4" stroke-width="2"/><path d="M68 81l6 6" stroke="#7cf0d4" stroke-width="2" stroke-linecap="round"/><text x="86" y="80" fill="#e8edff" font-size="15" font-family="Inter,sans-serif">Lisbon</text><circle cx="212" cy="75" r="4" fill="#fff"/><circle cx="212" cy="75" r="12" fill="#7cf0d4" opacity=".25" class="twinkle"/></svg>`,
+  stars:`<svg viewBox="0 0 300 150"><g stroke="#7cf0d4" stroke-opacity=".6" stroke-width="1.5" fill="none" stroke-linecap="round"><path d="M50 108L100 50L158 82L214 36L252 96"/><path d="M158 82L148 124"/></g><g fill="#fff"><circle cx="100" cy="50" r="5"/><circle cx="158" cy="82" r="6"/><circle cx="148" cy="124" r="4.5"/><circle cx="252" cy="96" r="5"/></g><circle cx="214" cy="36" r="6" fill="#ffd479"/><circle cx="50" cy="108" r="4.5" fill="#7cf0d4"/><g fill="#7cf0d4" opacity=".2" class="twinkle"><circle cx="158" cy="82" r="18"/><circle cx="214" cy="36" r="16"/><circle cx="100" cy="50" r="14"/></g></svg>`,
+  unlock:`<svg viewBox="0 0 300 150"><path d="M40 98c10-30 48-52 84-46 30 5 44 24 74 20 26-4 44 6 62 28-20 16-52 22-86 16-34-6-72 14-104 4z" fill="rgba(124,240,212,.22)" stroke="#7cf0d4" stroke-opacity=".7"/><g fill="#fff"><circle cx="96" cy="76" r="4"/><circle cx="140" cy="62" r="4"/><circle cx="184" cy="84" r="4"/><circle cx="226" cy="96" r="4"/></g><text x="150" y="30" text-anchor="middle" fill="#ffd479" font-size="15" font-weight="700" font-family="Sora,sans-serif">⚑ Country unlocked</text></svg>`,
+  share:`<svg viewBox="0 0 300 150"><rect x="55" y="22" width="190" height="106" rx="12" fill="#0a1330" stroke="rgba(124,240,212,.5)"/><g stroke="#7cf0d4" stroke-opacity=".55" fill="none"><path d="M85 100L120 60L160 78L200 48L222 92"/></g><g fill="#fff"><circle cx="120" cy="60" r="3.5"/><circle cx="160" cy="78" r="4"/><circle cx="222" cy="92" r="3.5"/></g><circle cx="200" cy="48" r="4" fill="#ffd479"/><circle cx="85" cy="100" r="3.5" fill="#7cf0d4"/><text x="150" y="44" text-anchor="middle" fill="#8c97b8" font-size="9" font-family="Inter,sans-serif">my constellation</text></svg>`
+};
+const ONB_STEPS=[
+  {art:'search', title:'Welcome to Constellate', text:"A map of everywhere you've been. Search any city you've visited and it lights up on the world map."},
+  {art:'stars', title:'Every city is a star', text:"Add cities and watch them join up into your own personal constellation. Small towns count too, just for a little less."},
+  {art:'unlock', title:'Unlock countries & continents', text:"Visit enough cities in a country to unlock it, then enough countries to unlock a whole continent. Climb the ranks as your score grows."},
+  {art:'share', title:'Share it with your friends', text:"When you're done, hit Share my map for a picture of your constellation and a link. Send it to your friends and see whose is brighter."}
+];
+let onbStep=0;
+function renderOnboarding(){
+  const st=ONB_STEPS[onbStep], last=onbStep===ONB_STEPS.length-1;
+  $('onbArt').innerHTML=ONB_ART[st.art]; $('onbTitle').textContent=st.title; $('onbText').textContent=st.text;
+  $('onbDots').innerHTML=ONB_STEPS.map((_,i)=>`<i class="${i===onbStep?'on':''}"></i>`).join('');
+  $('onbBack').style.visibility=onbStep?'visible':'hidden';
+  $('onbNext').textContent=last?"Let's go ✦":'Next';
+}
+function openOnboarding(){ onbStep=0; renderOnboarding(); $('onboard').hidden=false; $('onbNext').focus(); }
+function closeOnboarding(){ $('onboard').hidden=true; try{ localStorage.setItem(ONB_KEY,'1'); }catch(e){} }
+$('onbNext').onclick=()=>{ if(onbStep<ONB_STEPS.length-1){ onbStep++; renderOnboarding(); } else { closeOnboarding(); q.focus(); } };
+$('onbBack').onclick=()=>{ if(onbStep>0){ onbStep--; renderOnboarding(); } };
+$('onbClose').onclick=closeOnboarding;
+$('btnHelp').onclick=openOnboarding;
+$('onboard').addEventListener('mousedown',e=>{ if(e.target===$('onboard')) closeOnboarding(); });
+addEventListener('keydown',e=>{ if($('onboard').hidden) return; if(e.key==='Escape') closeOnboarding(); else if(e.key==='ArrowRight') $('onbNext').click(); else if(e.key==='ArrowLeft') $('onbBack').click(); });
+// first visit only (and not when someone opens a friend's shared map)
+try{ if(!localStorage.getItem(ONB_KEY) && !location.hash.includes('s=')) setTimeout(openOnboarding,500); }catch(e){}
+
 function openConfirm(){
   if(viewing) return;
   if(!visited.size){ toast('Nothing to reset yet',COLORS['Asia']); return; }

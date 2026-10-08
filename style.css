@@ -226,3 +226,22 @@ kbd{font:500 11px var(--font);color:#6f7b9f;border:1px solid var(--line);border-
 #styleRow button{flex:1;min-width:70px;height:34px;border-radius:10px;border:1px solid var(--line);font:600 12.5px var(--display);color:var(--muted);background:rgba(255,255,255,.03);transition:.15s}
 #styleRow button:hover{color:#fff;border-color:rgba(124,240,212,.4)}
 #styleRow button.on{color:#04121a;background:linear-gradient(135deg,#7cf0d4,#ffd479);border-color:transparent}
+
+/* minor cities: smaller dots, names only when zoomed in a long way */
+.dot.minor .core{r:2.2px}
+.dot.minor .halo{r:5px}
+#map .dot.minor text{display:none !important}
+#map.lv3 .dot.minor text{display:block !important}
+
+/* onboarding */
+.onb{width:min(440px,100%);text-align:center}
+.onb h3{font-size:22px;margin:6px 0 8px}
+.onb p{color:#c4cdea;line-height:1.55;font-size:14.5px;margin:0 auto 16px;max-width:36ch}
+#onbArt{height:150px;margin:6px 0 4px;display:grid;place-items:center}
+#onbArt svg{width:100%;height:100%;max-width:300px;overflow:visible}
+#onbDots{display:flex;gap:6px;justify-content:center;margin-bottom:16px}
+#onbDots i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.22);transition:.2s}
+#onbDots i.on{width:20px;border-radius:4px;background:linear-gradient(90deg,#7cf0d4,#ffd479)}
+.onb .actions .primary{flex:1.4}
+.onb .twinkle{animation:twk 2.4s ease-in-out infinite}
+@keyframes twk{50%{opacity:.45}}
