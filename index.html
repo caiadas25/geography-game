@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Wanderlit — light up the world you've travelled</title>
-<meta name="description" content="Search the cities you've visited and watch the world map light up. Unlock countries, then whole continents. Share your score and challenge your friends.">
-<meta property="og:title" content="Wanderlit — light up the world you've travelled">
-<meta property="og:description" content="Unlock cities, countries and continents on a glowing world map. How much of the world have you seen?">
+<title>Constellate — connect the places you've been</title>
+<meta name="description" content="Search the cities you've visited and watch them become stars on the world map. Unlock countries, then whole continents. Share your score and challenge your friends.">
+<meta property="og:title" content="Constellate — connect the places you've been">
+<meta property="og:description" content="Turn the cities you've visited into your own constellation. How much of the world have you seen?">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#050810">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='28' fill='%23070b18'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%237cf0d4' stroke-width='3'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23ffd479'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070b18'/%3E%3Cpath d='M7 21L13 10L21 15L25 7M21 15L18 25' stroke='%237cf0d4' stroke-opacity='.7' stroke-width='1.6' fill='none'/%3E%3Ccircle cx='13' cy='10' r='3' fill='%23fff'/%3E%3Ccircle cx='21' cy='15' r='3.4' fill='%23fff'/%3E%3Ccircle cx='18' cy='25' r='2.8' fill='%23fff'/%3E%3Ccircle cx='25' cy='7' r='2.8' fill='%23ffd479'/%3E%3Ccircle cx='7' cy='21' r='2.4' fill='%237cf0d4'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -26,10 +26,10 @@
 </div>
 
 <header id="brand">
-  <div class="logo"><i></i></div>
+  <div class="logo"><svg viewBox="0 0 32 32" width="100%" height="100%" aria-hidden="true"><rect width="32" height="32" rx="10" fill="#070b18"/><g stroke="#7cf0d4" stroke-opacity=".6" stroke-width="1.2" fill="none" stroke-linecap="round"><path d="M7 21L13 10L21 15L25 7M21 15L18 25"/></g><g fill="#fff"><circle cx="13" cy="10" r="2.4"/><circle cx="21" cy="15" r="2.8"/><circle cx="18" cy="25" r="2.2"/></g><g fill="#ffd479"><circle cx="25" cy="7" r="2.2"/></g><circle cx="7" cy="21" r="2" fill="#7cf0d4"/><circle cx="21" cy="15" r="6" fill="#7cf0d4" opacity=".18"/></svg></div>
   <div>
-    <h1>Wanderlit</h1>
-    <p>light up the world you've travelled</p>
+    <h1>Constellate</h1>
+    <p>connect the places you've been</p>
   </div>
 </header>
 
@@ -99,8 +99,9 @@
 <div id="modal" hidden>
   <div class="sheet glass">
     <button class="x" id="modalClose" aria-label="Close">×</button>
-    <h3>Share your map</h3>
+    <h3>Share your constellation</h3>
     <canvas id="cardPreview" width="1200" height="630"></canvas>
+    <div id="styleRow" role="group" aria-label="Image style"></div>
     <label class="field">Your name <small>(optional)</small>
       <input id="shareName" maxlength="24" placeholder="e.g. Ana" autocomplete="off">
     </label>

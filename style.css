@@ -80,7 +80,7 @@ button{font:inherit;color:inherit;cursor:pointer;background:none;border:0}
   border:1px solid var(--line);box-shadow:0 10px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06);border-radius:18px}
 #brand{position:fixed;top:18px;left:20px;z-index:10;display:flex;gap:12px;align-items:center;pointer-events:none}
 .logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
-  background:conic-gradient(from 200deg,#7cf0d4,#6c8cff,#ff6ba0,#ffd479,#7cf0d4);padding:2px}
+  box-shadow:0 0 0 1px rgba(124,240,212,.35),0 0 18px -4px rgba(124,240,212,.5);overflow:hidden}
 .logo i{display:block;width:100%;height:100%;border-radius:10px;background:#070b18 radial-gradient(circle at 50% 50%,#ffd479 0 4px,transparent 5px 9px,rgba(124,240,212,.9) 10px 11.5px,transparent 12px)}
 #brand h1{font-family:var(--display);font-weight:800;font-size:21px;letter-spacing:-.02em;
   background:linear-gradient(90deg,#fff,#aef6e6 60%,#ffd479);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -221,3 +221,8 @@ kbd{font:500 11px var(--font);color:#6f7b9f;border:1px solid var(--line);border-
 .danger{flex:1;height:42px;padding:0 14px;border-radius:12px;font:700 14px var(--display);color:#fff;background:#d6455d;transition:.15s}
 .danger:hover{background:#ec5a72}
 #btnReset:hover{color:#ff8aa0;border-color:rgba(255,138,160,.5);background:rgba(255,138,160,.12)}
+
+#styleRow{display:flex;gap:6px;margin:-4px 0 14px;flex-wrap:wrap}
+#styleRow button{flex:1;min-width:70px;height:34px;border-radius:10px;border:1px solid var(--line);font:600 12.5px var(--display);color:var(--muted);background:rgba(255,255,255,.03);transition:.15s}
+#styleRow button:hover{color:#fff;border-color:rgba(124,240,212,.4)}
+#styleRow button.on{color:#04121a;background:linear-gradient(135deg,#7cf0d4,#ffd479);border-color:transparent}

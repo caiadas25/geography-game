@@ -1,4 +1,4 @@
-/* Wanderlit — light up the world you've travelled */
+/* Constellate — connect the places you've been */
 (() => {
 'use strict';
 
@@ -47,7 +47,7 @@ const rankFor = s => RANKS.reduce((r,x)=> s>=x[0]?x:r, RANKS[0]);
    ========================================================= */
 const KEY='wanderlit.v1';
 let visited = new Set();
-let settings = { sound:true, name:'' };
+let settings = { sound:true, name:'', cardStyle:'starfield' };
 let viewing = null;                       // {name, visited:Set} when looking at a shared map
 try{
   const s = JSON.parse(localStorage.getItem(KEY)||'null');
@@ -589,39 +589,141 @@ function shareUrl(){
 function shareMessage(){
   const name=($('shareName').value||settings.name||'').trim();
   const r=rankFor(D.score)[1];
-  return `${name?name+' has':"I've"} lit up ${visited.size} ${visited.size===1?'city':'cities'}, ${D.countries.size} ${D.countries.size===1?'country':'countries'} and ${D.conts.size} ${D.conts.size===1?'continent':'continents'} on Wanderlit — ${D.score.toLocaleString()} pts (${r}). Can you beat it?`;
+  return `${name?name+' has':"I've"} lit up ${visited.size} ${visited.size===1?'city':'cities'}, ${D.countries.size} ${D.countries.size===1?'country':'countries'} and ${D.conts.size} ${D.conts.size===1?'continent':'continents'} on Constellate — ${D.score.toLocaleString()} pts (${r}). Can you beat it?`;
 }
-function drawCard(canvas){
-  const w=canvas.width, h=canvas.height, g=canvas.getContext('2d');
-  const bg=g.createRadialGradient(w/2,h*.55,50,w/2,h*.55,w*.7); bg.addColorStop(0,'#0f2250'); bg.addColorStop(1,'#04060f');
-  g.fillStyle=bg; g.fillRect(0,0,w,h);
-  for(let i=0;i<140;i++){ g.fillStyle=`rgba(190,210,255,${Math.random()*.5})`; g.fillRect(Math.random()*w,Math.random()*h,1.4,1.4); }
-  const pr=d3.geoNaturalEarth1().fitExtent([[40,150],[w-40,h-70]],sphere), pa=d3.geoPath(pr,g);
-  g.beginPath(); pa(sphere); g.fillStyle='rgba(14,33,71,.55)'; g.fill(); g.strokeStyle='rgba(124,240,212,.25)'; g.lineWidth=1.2; g.stroke();
-  const lit=litSet(D);
-  features.forEach(f=>{ g.beginPath(); pa(f); g.fillStyle='#1a2b55'; g.fill(); g.strokeStyle='#3a5288'; g.lineWidth=.6; g.stroke(); });
-  g.save(); g.globalCompositeOperation='lighter';
-  active().forEach(i=>{ const c=cities[i]; const [x,y]=pr([c.lon,c.lat]); const rad=g.createRadialGradient(x,y,0,x,y,24);
-    rad.addColorStop(0,hexA(COLORS[c.cont],.9)); rad.addColorStop(1,hexA(COLORS[c.cont],0)); g.fillStyle=rad; g.beginPath(); g.arc(x,y,24,0,6.283); g.fill(); });
-  g.restore();
-  features.forEach(f=>{ if(!lit.has(f.properties.name)) return; const col=COLORS[contOf(f.properties.name)];
-    g.beginPath(); pa(f); g.fillStyle=hexA(col,.62); g.fill(); g.strokeStyle=col; g.lineWidth=1; g.stroke(); });
-  D.conts.forEach(k=>{ g.beginPath(); pa(outlineFor(k)); g.strokeStyle='rgba(255,212,121,.35)'; g.lineWidth=7; g.lineJoin='round'; g.stroke(); g.strokeStyle='#ffe9b0'; g.lineWidth=1.8; g.stroke(); });
-  active().forEach(i=>{ const c=cities[i]; const [x,y]=pr([c.lon,c.lat]); g.fillStyle='#fff'; g.beginPath(); g.arc(x,y,2.2,0,6.283); g.fill(); });
-  // text
-  const name=viewing?viewing.name:($('shareName')?.value||settings.name||'').trim();
+/* ---------- share card: your cities as a constellation ---------- */
+const CARD_W=1200, CARD_H=630;
+const CARD_STYLES={ starfield:'Starfield', sky:'Star chart', atlas:'Atlas', paper:'Paper' };
+const ink=(col,t)=>d3.interpolateRgb(col,'#141b3f')(t);
+
+// zoom the projection onto wherever the stars are, so one region's trip still fills the picture
+function fitCardProjection(area,ids){
+  const pr=d3.geoNaturalEarth1().fitExtent([[area.x0,area.y0],[area.x1,area.y1]],sphere);
+  const pc=ids.map(i=>pr([cities[i].lon,cities[i].lat])).filter(p=>isFinite(p[0]));
+  if(pc.length){
+    const xs=pc.map(p=>p[0]), ys=pc.map(p=>p[1]), bx0=Math.min(...xs), bx1=Math.max(...xs), by0=Math.min(...ys), by1=Math.max(...ys);
+    const k=Math.max(1,Math.min(6,(area.x1-area.x0)/Math.max(bx1-bx0,1)*0.8,(area.y1-area.y0)/Math.max(by1-by0,1)*0.8));
+    const t0=pr.translate(), mx=(area.x0+area.x1)/2, my=(area.y0+area.y1)/2, cx0=(bx0+bx1)/2, cy0=(by0+by1)/2;
+    pr.scale(pr.scale()*k).translate([mx-(cx0-t0[0])*k, my-(cy0-t0[1])*k]);
+  }
+  return pr;
+}
+// constellation lines: minimum spanning tree (skipping hops too long to read as one figure) plus a few short loops
+function constellationEdges(pts,maxEdge,loopEdge){
+  const n=pts.length, dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y), edges=[];
+  const inT=new Array(n).fill(false), best=new Array(n).fill(Infinity), from=new Array(n).fill(-1);
+  for(let s0=0;s0<n;s0++){
+    if(inT[s0]) continue; best[s0]=0;
+    for(;;){
+      let u=-1; for(let k=0;k<n;k++) if(!inT[k]&&best[k]<Infinity&&(u<0||best[k]<best[u])) u=k;
+      if(u<0) break; inT[u]=true;
+      if(from[u]>=0&&best[u]<=maxEdge) edges.push([from[u],u]);
+      let m=Infinity;
+      for(let k=0;k<n;k++) if(!inT[k]){ const d=dist(pts[u],pts[k]); if(d<best[k]){ best[k]=d; from[k]=u; } if(best[k]<m) m=best[k]; }
+      if(m>maxEdge) break;
+    }
+    for(let k=0;k<n;k++) if(!inT[k]){ best[k]=Infinity; from[k]=-1; }
+  }
+  const seen=new Set(edges.map(e=>Math.min(...e)+'-'+Math.max(...e)));
+  pts.forEach((p,a)=>{
+    let n2=-1,d1=Infinity,d2=Infinity,n1=-1;                       // second-nearest neighbour
+    pts.forEach((q,b)=>{ if(a===b) return; const d=dist(p,q); if(d<d1){ d2=d1; n2=n1; d1=d; n1=b; } else if(d<d2){ d2=d; n2=b; } });
+    if(n2>=0 && d2<loopEdge && (a*7%5)<2){ const k=Math.min(a,n2)+'-'+Math.max(a,n2); if(!seen.has(k)){ seen.add(k); edges.push([a,n2]); } } });
+  return edges;
+}
+// pick non-overlapping city labels, trying right, left, above, below of each star
+function placeLabels(g,pts,font,pad=4){
+  g.font=font; const boxes=[], out=[];
+  pts.forEach(p=>{ const c=cities[p.i], tw=g.measureText(c.n).width, th=14;
+    const opts=[[10,4,'left'],[-10,4,'right'],[0,-12,'center'],[0,20,'center']];
+    for(const [dx,dy,al] of opts){
+      const x=p.x+dx, y=p.y+dy, x0=al==='left'?x:al==='right'?x-tw:x-tw/2, bx=[x0-pad,y-th,x0+tw+pad,y+4];
+      if(bx[0]<24||bx[2]>CARD_W-24||bx[1]<125||bx[3]>CARD_H-50) continue;
+      if(boxes.some(o=>!(bx[2]<o[0]||bx[0]>o[2]||bx[3]<o[1]||bx[1]>o[3]))) continue;
+      boxes.push(bx); out.push({x,y,al,n:c.n}); break;
+    } });
+  return out;
+}
+function cardHeader(g,w,h,T,name,stat){
   g.textBaseline='alphabetic';
-  g.font='800 34px Sora, Inter, sans-serif'; const tg=g.createLinearGradient(40,0,300,0); tg.addColorStop(0,'#fff'); tg.addColorStop(1,'#ffd479');
-  g.fillStyle=tg; g.fillText('Wanderlit',40,66);
-  g.font='500 18px Inter, sans-serif'; g.fillStyle='#8c97b8'; g.fillText(name?`${name}'s map`:'my travel map',42,96);
+  g.font='800 34px Sora, Inter, sans-serif'; const tg=g.createLinearGradient(40,0,300,0); tg.addColorStop(0,T.title0); tg.addColorStop(1,T.title1);
+  g.fillStyle=tg; g.fillText('Constellate',40,66);
+  g.font='500 18px Inter, sans-serif'; g.fillStyle=T.sub; g.fillText(name?`${name}'s constellation`:'my constellation',42,96);
   g.textAlign='right';
-  g.font='800 72px Sora, Inter, sans-serif'; g.fillStyle='#fff'; g.fillText(D.score.toLocaleString(),w-40,84);
-  g.font='700 15px Sora, Inter, sans-serif'; g.fillStyle='#ffd479'; g.fillText(rankFor(D.score)[1].toUpperCase()+'  ·  PTS',w-42,114);
-  g.textAlign='left'; g.font='600 20px Inter, sans-serif'; g.fillStyle='#dbe3ff';
-  g.fillText(`${active().size} ${active().size===1?'city':'cities'}   ·   ${D.countries.size} ${D.countries.size===1?'country':'countries'}   ·   ${D.conts.size} ${D.conts.size===1?'continent':'continents'}`,40,h-26);
-  g.textAlign='right'; g.fillStyle='#7cf0d4'; g.font='600 18px Inter, sans-serif';
+  g.font='800 72px Sora, Inter, sans-serif'; g.fillStyle=T.big; g.fillText(D.score.toLocaleString(),w-40,84);
+  g.font='700 15px Sora, Inter, sans-serif'; g.fillStyle=T.accent; g.fillText(rankFor(D.score)[1].toUpperCase()+'  ·  PTS',w-42,114);
+  g.textAlign='left'; g.font='600 20px Inter, sans-serif'; g.fillStyle=T.text; g.fillText(stat,40,h-26);
+  g.textAlign='right'; g.fillStyle=T.link; g.font='600 18px Inter, sans-serif';
   g.fillText(location.host? location.host+location.pathname.replace(/index\.html$/,'') : 'Can you beat it?',w-40,h-26);
   g.textAlign='left';
+}
+function sparkle(g,x,y,r,color,alpha,diag){
+  g.strokeStyle=hexA(color,alpha); g.lineWidth=1.1; g.lineCap='round'; g.beginPath();
+  g.moveTo(x-r,y); g.lineTo(x+r,y); g.moveTo(x,y-r); g.lineTo(x,y+r);
+  if(diag){ const d=r*.55; g.moveTo(x-d,y-d); g.lineTo(x+d,y+d); g.moveTo(x-d,y+d); g.lineTo(x+d,y-d); }
+  g.stroke();
+}
+function drawCard(canvas,scale=1,style=settings.cardStyle||'starfield'){
+  const w=CARD_W, h=CARD_H;
+  if(canvas.width!==w*scale||canvas.height!==h*scale){ canvas.width=w*scale; canvas.height=h*scale; }
+  const g=canvas.getContext('2d'); g.setTransform(scale,0,0,scale,0,0); g.imageSmoothingQuality='high';
+  let seed=1337; const rnd=()=>((seed=(seed*1664525+1013904223)>>>0)/4294967296);
+  const name=viewing?viewing.name:($('shareName')?.value||settings.name||'').trim();
+  const ids=[...active()];
+  const stat=`${ids.length} ${ids.length===1?'star':'stars'}   ·   ${D.countries.size} ${D.countries.size===1?'country':'countries'}   ·   ${D.conts.size} ${D.conts.size===1?'continent':'continents'}`;
+  const paper=style==='paper', atlas=style==='atlas', sky=style==='sky';
+  const T = paper ? {title0:'#141b3f',title1:'#8a5a00',sub:'#6b6a64',big:'#141b3f',accent:'#8a5a00',text:'#2b3358',link:'#2a6f62'}
+                  : {title0:'#fff',title1:'#ffd479',sub:'#8c97b8',big:'#fff',accent:'#ffd479',text:'#dbe3ff',link:'#7cf0d4'};
+  // ---- background
+  if(paper){ const bg=g.createRadialGradient(w/2,h*.5,60,w/2,h*.5,w*.7); bg.addColorStop(0,'#fbf7ec'); bg.addColorStop(1,'#eadfc6'); g.fillStyle=bg; g.fillRect(0,0,w,h); }
+  else { const bg=g.createRadialGradient(w/2,h*.55,40,w/2,h*.55,w*.75); bg.addColorStop(0,atlas?'#0d1b40':'#101f4a'); bg.addColorStop(.6,atlas?'#08112a':'#070d22'); bg.addColorStop(1,'#03050d'); g.fillStyle=bg; g.fillRect(0,0,w,h); }
+  if(!paper && !atlas){ for(let i=0;i<(sky?420:260);i++){ g.fillStyle=`rgba(190,210,255,${rnd()*.5})`; const sz=rnd()<.07?2.2:1.2; g.fillRect(rnd()*w,rnd()*h,sz,sz); } }
+  // ---- map
+  const area={x0:70,y0:140,x1:w-70,y1:h-70};
+  const pr=fitCardProjection(area,ids), pa=d3.geoPath(pr,g);
+  if(atlas||paper){ g.beginPath(); pa(d3.geoGraticule10()); g.strokeStyle=paper?'rgba(120,100,60,.14)':'rgba(140,170,255,.10)'; g.lineWidth=.8; g.stroke(); }
+  if(!sky){
+    features.forEach(f=>{ g.beginPath(); pa(f);
+      if(paper){ g.fillStyle='rgba(170,150,105,.20)'; g.fill(); g.strokeStyle='rgba(120,100,60,.35)'; g.lineWidth=.7; g.stroke(); }
+      else if(atlas){ g.strokeStyle='rgba(150,180,255,.30)'; g.lineWidth=.8; g.stroke(); }
+      else { g.fillStyle='rgba(120,150,230,.055)'; g.fill(); g.strokeStyle='rgba(140,170,255,.07)'; g.lineWidth=.6; g.stroke(); } });
+  }
+  const pts=ids.map(i=>{ const c=cities[i]; const [x,y]=pr([c.lon,c.lat]); return {x,y,col:COLORS[c.cont],i}; }).filter(p=>isFinite(p.x));
+  const edges=constellationEdges(pts,w*0.2,w*0.06);
+  // ---- soft nebula glow under clusters
+  if(!paper && !atlas){ g.save(); g.globalCompositeOperation='lighter';
+    pts.forEach(p=>{ const r=70, rad=g.createRadialGradient(p.x,p.y,0,p.x,p.y,r); rad.addColorStop(0,hexA(p.col,.07)); rad.addColorStop(1,hexA(p.col,0)); g.fillStyle=rad; g.beginPath(); g.arc(p.x,p.y,r,0,6.283); g.fill(); });
+    g.restore(); }
+  // ---- lines
+  g.lineCap='round';
+  edges.forEach(([a,b])=>{ const A=pts[a], B=pts[b];
+    if(paper){ g.strokeStyle='rgba(43,58,103,.55)'; g.lineWidth=1.4; g.setLineDash([2,5]); g.beginPath(); g.moveTo(A.x,A.y); g.lineTo(B.x,B.y); g.stroke(); g.setLineDash([]); return; }
+    const base=atlas?'#ffd479':null, lg=g.createLinearGradient(A.x,A.y,B.x,B.y);
+    lg.addColorStop(0,hexA(base||A.col,.7)); lg.addColorStop(1,hexA(base||B.col,.7));
+    g.strokeStyle=lg; g.lineWidth=atlas?1:1.3; g.beginPath(); g.moveTo(A.x,A.y); g.lineTo(B.x,B.y); g.stroke();
+    if(!atlas){ g.globalAlpha=.18; g.lineWidth=4; g.stroke(); g.globalAlpha=1; } });
+  // ---- stars
+  const sized=pts.map(p=>({...p,r:2.4+rnd()*2.6}));
+  g.save(); if(!paper&&!atlas) g.globalCompositeOperation='lighter';
+  sized.forEach(p=>{
+    if(paper){ const c=ink(p.col,.45); g.fillStyle=hexA(c,.18); g.beginPath(); g.arc(p.x,p.y,p.r*2.6,0,6.283); g.fill(); sparkle(g,p.x,p.y,p.r*2.4,c,.9,p.r>3.6); g.fillStyle=c; g.beginPath(); g.arc(p.x,p.y,p.r*.75+.8,0,6.283); g.fill(); return; }
+    if(atlas){ g.strokeStyle=hexA(p.col,.95); g.lineWidth=1.6; g.beginPath(); g.arc(p.x,p.y,p.r*1.7+2,0,6.283); g.stroke(); g.fillStyle='#fff'; g.beginPath(); g.arc(p.x,p.y,p.r*.7+.6,0,6.283); g.fill(); return; }
+    const gr=p.r*4.2, rad=g.createRadialGradient(p.x,p.y,0,p.x,p.y,gr);
+    rad.addColorStop(0,hexA(p.col,.55)); rad.addColorStop(.35,hexA(p.col,.18)); rad.addColorStop(1,hexA(p.col,0)); g.fillStyle=rad; g.beginPath(); g.arc(p.x,p.y,gr,0,6.283); g.fill();
+    if(p.r>3.2) sparkle(g,p.x,p.y,p.r*3.2,'#ffffff',.55,p.r>4.4);
+  });
+  g.restore();
+  if(!paper && !atlas){ sized.forEach(p=>{ g.fillStyle='#fff'; g.beginPath(); g.arc(p.x,p.y,1.5+p.r*.18,0,6.283); g.fill(); }); }
+  // ---- labels: star chart, atlas and paper name the cities
+  if(sky||atlas||paper){
+    const labels=placeLabels(g,sized.slice(0,200),'500 13px Inter, sans-serif');
+    g.font='500 13px Inter, sans-serif'; g.textBaseline='alphabetic';
+    labels.forEach(l=>{ g.textAlign=l.al; g.fillStyle=paper?'rgba(43,51,88,.9)':'rgba(205,216,245,.85)'; g.fillText(l.n,l.x,l.y); });
+    g.textAlign='left';
+  }
+  // ---- frame
+  if(sky||atlas||paper){ g.strokeStyle=paper?'rgba(120,100,60,.45)':'rgba(190,210,255,.22)'; g.lineWidth=1.2; g.strokeRect(14,14,w-28,h-28); if(!atlas){ g.strokeStyle=paper?'rgba(120,100,60,.2)':'rgba(190,210,255,.1)'; g.strokeRect(20,20,w-40,h-40); } }
+  cardHeader(g,w,h,T,name,stat);
 }
 function openModal(){
   $('shareName').value=settings.name||'';
@@ -629,7 +731,8 @@ function openModal(){
 }
 function closeModal(){ $('modal').hidden=true; }
 function refreshShare(){
-  drawCard($('cardPreview'));
+  drawCard($('cardPreview'),1.5);
+  document.querySelectorAll('#styleRow button').forEach(b=>b.classList.toggle('on',b.dataset.style===(settings.cardStyle||'starfield')));
   $('shareText').textContent=shareMessage();
   $('shareLink').value=shareUrl();
   $('btnNative').hidden=!navigator.share;
@@ -651,6 +754,8 @@ $('confirmYes').onclick=()=>{
   toast('Map reset',COLORS['Asia']);
 };
 $('btnShare').onclick=()=>{ if(viewing) return; if(!visited.size){ toast('Light up a city first ✦',COLORS['Asia']); q.focus(); return; } openModal(); };
+$('styleRow').innerHTML=Object.entries(CARD_STYLES).map(([k,v])=>`<button data-style="${k}">${v}</button>`).join('');
+$('styleRow').onclick=e=>{ const k=e.target.dataset&&e.target.dataset.style; if(!k) return; settings.cardStyle=k; save(); refreshShare(); };
 $('modalClose').onclick=closeModal;
 $('modal').addEventListener('mousedown',e=>{ if(e.target===$('modal')) closeModal(); });
 $('shareName').addEventListener('input',()=>{ settings.name=$('shareName').value.trim(); save(); refreshShare(); });
@@ -659,8 +764,11 @@ $('btnCopy').onclick=async()=>{
   try{ await navigator.clipboard.writeText(text); }catch(e){ $('shareLink').select(); document.execCommand('copy'); }
   $('btnCopy').textContent='Copied ✓'; setTimeout(()=>$('btnCopy').textContent='Copy link',1800);
 };
-$('btnNative').onclick=()=>navigator.share({title:'Wanderlit',text:shareMessage(),url:shareUrl()}).catch(()=>{});
-$('btnImage').onclick=()=>{ const a=document.createElement('a'); a.download='wanderlit.png'; a.href=$('cardPreview').toDataURL('image/png'); a.click(); };
+$('btnNative').onclick=()=>navigator.share({title:'Constellate',text:shareMessage(),url:shareUrl()}).catch(()=>{});
+$('btnImage').onclick=()=>{            // render a crisp 2x copy for download
+  const big=document.createElement('canvas'); drawCard(big,2);
+  const a=document.createElement('a'); a.download='constellate.png'; a.href=big.toDataURL('image/png'); a.click();
+};
 
 /* ---------- shared-view mode ---------- */
 function enterViewing(v){
@@ -694,5 +802,5 @@ function boot(){
   let rt; addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ layout(); sizeCanvas(); },120); });
 }
 boot();
-window.__wanderlit = { visited, cities, toggleCity, derive, get D(){return D;} };   // handy for debugging
+window.__constellate = { visited, cities, toggleCity, derive, get D(){return D;} };   // handy for debugging
 })();

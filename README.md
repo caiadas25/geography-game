@@ -1,4 +1,4 @@
-# Wanderlit
+# Constellate
 Light up the world you've travelled. Static site — no build step needed to play.
 
 Run locally: `python3 -m http.server 8000` in this folder, open http://localhost:8000
