@@ -68,6 +68,7 @@
   <button id="btnZoomOut" class="round" aria-label="Zoom out">−</button>
   <button id="btnHome" class="round" aria-label="Reset view" title="Reset view">⌂</button>
   <button id="btnSound" class="round" aria-label="Toggle sound" title="Sound">♪</button>
+  <button id="btnReset" class="round" aria-label="Reset my map" title="Reset my map">↺</button>
 </div>
 
 <button id="btnShare" class="cta">
@@ -83,6 +84,17 @@
 <div id="toasts"></div>
 <div id="banner"><div class="k"></div><div class="t"></div><div class="s"></div></div>
 <div id="tip"></div>
+
+<div id="confirmModal" class="overlay" hidden>
+  <div class="sheet glass confirm" role="alertdialog" aria-labelledby="confirmTitle">
+    <h3 id="confirmTitle">Reset your map?</h3>
+    <p id="confirmText"></p>
+    <div class="actions">
+      <button id="confirmNo" class="ghost">Cancel</button>
+      <button id="confirmYes" class="danger">Yes, reset everything</button>
+    </div>
+  </div>
+</div>
 
 <div id="modal" hidden>
   <div class="sheet glass">

@@ -13,6 +13,7 @@ const GOLD = '#ffd479';
 const PTS = { city:10, country:100, continent:1000 };
 const RANKS = [[0,'Homebody'],[10,'Day Tripper'],[100,'Wanderer'],[300,'Backpacker'],[800,'Explorer'],
   [2000,'Globetrotter'],[4500,'Nomad'],[9000,'Cartographer'],[16000,'World Walker'],[26000,'Legend']];
+const HIT_R = 16;                        // max click radius (screen px) around a city dot
 const CITY_RADIUS = 2.1;                 // degrees of "painted" area around a visited city
 const VIEWS = {                           // [lon, lat, zoom] used when a continent unlocks
   'Europe':[14,52,3.4],'Asia':[88,38,2.1],'Africa':[20,2,2.3],'North America':[-100,45,2.2],
@@ -107,12 +108,14 @@ og.append('stop').attr('offset','100%').attr('stop-color','#050a18');
 Object.entries(COLORS).forEach(([k,c])=>{
   const id=k.replace(/\s/g,'');
   const g=defs.append('radialGradient').attr('id','glow-'+id);
-  g.append('stop').attr('offset','0%').attr('stop-color',c).attr('stop-opacity',.95);
-  g.append('stop').attr('offset','55%').attr('stop-color',c).attr('stop-opacity',.55);
+  const soft=d3.interpolateRgb(c,'#ffffff');
+  g.append('stop').attr('offset','0%').attr('stop-color',soft(.85)).attr('stop-opacity',.85);
+  g.append('stop').attr('offset','30%').attr('stop-color',soft(.6)).attr('stop-opacity',.5);
+  g.append('stop').attr('offset','65%').attr('stop-color',soft(.35)).attr('stop-opacity',.2);
   g.append('stop').attr('offset','100%').attr('stop-color',c).attr('stop-opacity',0);
   const l=defs.append('linearGradient').attr('id','lit-'+id).attr('x1',0).attr('y1',0).attr('x2',1).attr('y2',1);
-  l.append('stop').attr('offset','0%').attr('stop-color',c).attr('stop-opacity',.78);
-  l.append('stop').attr('offset','100%').attr('stop-color',c).attr('stop-opacity',.42);
+  l.append('stop').attr('offset','0%').attr('stop-color',soft(.6)).attr('stop-opacity',.5);
+  l.append('stop').attr('offset','100%').attr('stop-color',soft(.35)).attr('stop-opacity',.3);
 });
 const gid = k => k.replace(/\s/g,'');
 
@@ -139,8 +142,10 @@ const dots = dotG.selectAll('g').data(cities).join('g').attr('class','dot')
   .style('--c',c=>COLORS[c.cont]);
 dots.append('circle').attr('class','halo').attr('r',7);
 dots.append('circle').attr('class','core').attr('r',3.1);
-dots.append('circle').attr('class','hit').attr('r',9);
-dots.append('text').attr('x',7).attr('y',3.5).text(c=>c.n);
+dots.append('circle').attr('class','hit').attr('r',HIT_R);
+// Vatican City is nudged west of Rome so the two dots can be told apart; its label goes on the left
+const LEFT_LABEL = new Set(['Vatican City']);
+dots.append('text').attr('x',c=>LEFT_LABEL.has(c.n)?-7:7).attr('y',3.5).style('text-anchor',c=>LEFT_LABEL.has(c.n)?'end':null).text(c=>c.n);
 dots.on('click',(e,c)=>{ e.stopPropagation(); toggleCity(c.i); })
     .on('mouseenter',(e,c)=>hoverCity(e,c)).on('mousemove',moveTip).on('mouseleave',hideTip);
 
@@ -164,6 +169,8 @@ function layout(){
   land.attr('d',path);
   clipSrc.selectAll('path').attr('d',(f)=>path(f));
   dots.attr('data-x',c=>c.x=projection([c.lon,c.lat])[0]).attr('data-y',c=>c.y=projection([c.lon,c.lat])[1]);
+  dots.each(a=>{ let m=1e9; for(const b of cities){ if(b!==a){ const d=Math.hypot(a.x-b.x,a.y-b.y); if(d<m) m=d; } } a.near=m; });
+  dots.sort((a,b)=>b.i-a.i);              // earlier (bigger) cities sit on top of near-duplicates
   zoom.translateExtent([[-W*0.25,-H*0.25],[W*1.25,H*1.25]]);
   applyTransform(d3.zoomTransform(svg.node()));
   paintAll(false);
@@ -176,8 +183,10 @@ function applyTransform(t){
   K=t.k;
   zoomG.attr('transform',t);
   dots.attr('transform',c=>`translate(${c.x},${c.y}) scale(${1/K})`);
+  dots.select('.hit').attr('r',c=>Math.max(3,Math.min(HIT_R,c.near*K/2)));   // shrink hit area where cities crowd
   nameG.selectAll('text').attr('transform',function(){ const d=this.__data__; return `translate(${d.x},${d.y}) scale(${1/K})`; });
-  svg.classed('lv0',K<2).classed('lv1',K>=2.3).classed('lv2',K>=5.5);
+  const f=Math.max(1,1100/W);             // narrower screens need more zoom before labels stop colliding
+  svg.classed('lv0',K<2).classed('lv1',K>=2.3*f).classed('lv2',K>=5.5*f);
 }
 const toScreen = (lon,lat) => { const p=projection([lon,lat]); const t=d3.zoomTransform(svg.node()); return t.apply(p); };
 function flyTo(lon,lat,k,ms=1100){
@@ -238,8 +247,10 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
     sel.attr('d',c=>circlePath(c,CITY_RADIUS));
     const en = sel.enter().append('path').attr('class','glow').attr('fill',c=>`url(#glow-${gid(c.cont)})`);
     if(animate){
-      en.attr('d',c=>circlePath(c,0.01)).transition().duration(900).ease(d3.easeCubicOut)
-        .attrTween('d',c=>t=>circlePath(c,CITY_RADIUS*Math.max(t,0.001)));
+      // light blooms out with an overshoot, then settles; a white-hot flash fades behind it
+      en.classed('fresh',true).attr('d',c=>circlePath(c,0.01)).transition().duration(1700).ease(d3.easeBackOut.overshoot(2.6))
+        .attrTween('d',c=>t=>circlePath(c,CITY_RADIUS*Math.max(t,0.001)))
+        .on('end',function(){ d3.select(this).classed('fresh',false); });
     } else en.attr('d',c=>circlePath(c,CITY_RADIUS));
   });
 
@@ -256,8 +267,8 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
   }
 
   // country names for lit countries
-  const nd = ld.map(f=>{ const i=featByName.get(f.properties.name).i; const [x,y]=path.centroid(mainPoly[i]); return {name:f.properties.name,x,y,big:areaOf[i]>0.02}; })
-    .filter(d=>isFinite(d.x));
+  const nd = ld.map(f=>{ const i=featByName.get(f.properties.name).i; const [x,y]=path.centroid(mainPoly[i]); return {name:f.properties.name,x,y,big:areaOf[i]>0.02,area:areaOf[i]}; })
+    .filter(d=>isFinite(d.x) && d.area>5e-7);
   const nsel = nameG.selectAll('text').data(nd,d=>d.name);
   nsel.exit().remove();
   nsel.enter().append('text').attr('class',d=>'cname'+(d.big?' big':'')).text(d=>d.name).attr('font-size',d=>d.big?13:10);
@@ -288,7 +299,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
    FX (canvas particles) + audio
    ========================================================= */
 const cv=$('fx'), cx=cv.getContext('2d');
-let parts=[], rings=[], raf=0, DPR=1;
+let parts=[], rings=[], stars=[], raf=0, DPR=1;
 function sizeCanvas(){ DPR=Math.min(devicePixelRatio||1,2); cv.width=W*DPR; cv.height=H*DPR; cx.setTransform(DPR,0,0,DPR,0,0); }
 function hexA(h,a){ const n=parseInt(h.slice(1),16); return `rgba(${n>>16},${n>>8&255},${n&255},${a})`; }
 function burst(x,y,color,n,speed,life=1,grav=60){
@@ -298,16 +309,36 @@ function burst(x,y,color,n,speed,life=1,grav=60){
   }
   kick();
 }
+function starBurst(x,y,color,n=14){
+  for(let i=0;i<n;i++){
+    const a=-Math.PI/2+(Math.random()-.5)*2.2, sp=110+Math.random()*190;   // mostly upward, fanned out
+    stars.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,rot:Math.random()*6.283,spin:(Math.random()-.5)*9,
+      size:3.5+Math.random()*4.5,life:1.0+Math.random()*0.7,age:0,color:Math.random()<.35?'#ffffff':(Math.random()<.4?GOLD:color)});
+  }
+  kick();
+}
+function drawStar(x,y,r,rot){
+  cx.beginPath();
+  for(let i=0;i<10;i++){ const rr=i%2?r*0.42:r, a=rot+i*Math.PI/5-Math.PI/2; cx.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr); }
+  cx.closePath(); cx.fill();
+}
 function ring(x,y,color,max,dur=0.9,w=3){ rings.push({x,y,color,max,dur,age:0,w}); kick(); }
 function kick(){ if(!raf) { last=performance.now(); raf=requestAnimationFrame(loop); } }
 let last=0;
 function loop(t){
-  const dt=Math.min((t-last)/1000,0.05); last=t;
+  const dt=Math.max(0,Math.min((t-last)/1000,0.05)); last=t;
   cx.clearRect(0,0,W,H);
   cx.globalCompositeOperation='lighter';
   rings=rings.filter(r=>(r.age+=dt)<r.dur);
   rings.forEach(r=>{ const p=r.age/r.dur, e=1-Math.pow(1-p,3);
     cx.strokeStyle=hexA(r.color,(1-p)*.9); cx.lineWidth=r.w*(1-p)+.5; cx.beginPath(); cx.arc(r.x,r.y,r.max*e,0,6.283); cx.stroke(); });
+  stars=stars.filter(p=>(p.age+=dt)<p.life);
+  stars.forEach(p=>{
+    p.vy+=520*dt; p.vx*=0.99; p.x+=p.vx*dt; p.y+=p.vy*dt; p.rot+=p.spin*dt;   // pop up, then arc back down
+    const a=Math.min(1,(1-p.age/p.life)*1.6), tw=0.75+0.25*Math.sin(p.age*28+p.rot);
+    cx.fillStyle=hexA(p.color,a*.22); drawStar(p.x,p.y,p.size*2.1*a,p.rot);
+    cx.fillStyle=hexA(p.color,a*tw); drawStar(p.x,p.y,p.size*(0.5+a*.5),p.rot);
+  });
   parts=parts.filter(p=>(p.age+=dt)<p.life);
   parts.forEach(p=>{
     p.vy+=p.g*dt; p.vx*=0.985; p.vy*=0.985; p.x+=p.vx*dt; p.y+=p.vy*dt;
@@ -317,7 +348,7 @@ function loop(t){
     cx.fillStyle=hexA(p.color.length===7?p.color:'#ffffff',a*.18);
     cx.beginPath(); cx.arc(p.x,p.y,p.size*3.2*a,0,6.283); cx.fill();
   });
-  if(parts.length||rings.length) raf=requestAnimationFrame(loop); else { raf=0; cx.clearRect(0,0,W,H); }
+  if(parts.length||rings.length||stars.length) raf=requestAnimationFrame(loop); else { raf=0; cx.clearRect(0,0,W,H); }
 }
 function flash(x,y,color){
   const f=$('flash'); f.style.setProperty('--fx',x+'px'); f.style.setProperty('--fy',y+'px'); f.style.setProperty('--fc',hexA(color,.55));
@@ -394,7 +425,7 @@ async function toggleCity(i, {fly=false}={}){
 async function celebrate(c,newCountries,newConts){
   const [x,y]=toScreen(c.lon,c.lat);
   const col=COLORS[c.cont];
-  burst(x,y,col,36,150,1.0); ring(x,y,col,46,.8); ring(x,y,'#ffffff',26,.55,2);
+  starBurst(x,y,col,16); burst(x,y,col,14,90,.7);
   sfx.city();
   toast(`✦ ${c.n}<b>+${PTS.city}</b>`,col);
 
@@ -536,7 +567,7 @@ q.addEventListener('keydown',e=>{
   else if(e.key==='Escape'){ q.value=''; results.innerHTML=''; q.blur(); }
 });
 q.addEventListener('blur',()=>setTimeout(()=>{ results.innerHTML=''; },120));
-addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement!==q&&document.activeElement.tagName!=='INPUT'){ e.preventDefault(); q.focus(); } if(e.key==='Escape'){ closePanel(); closeModal(); } });
+addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement!==q&&document.activeElement.tagName!=='INPUT'){ e.preventDefault(); q.focus(); } if(e.key==='Escape'){ closePanel(); closeModal(); closeConfirm(); } });
 document.querySelectorAll('#hint button').forEach(b=>b.onclick=()=>{ const c=cities.find(c=>c.n===b.dataset.try); if(c) pick(c); });
 
 /* ---------- dock ---------- */
@@ -603,6 +634,22 @@ function refreshShare(){
   $('shareLink').value=shareUrl();
   $('btnNative').hidden=!navigator.share;
 }
+function openConfirm(){
+  if(viewing) return;
+  if(!visited.size){ toast('Nothing to reset yet',COLORS['Asia']); return; }
+  const n=visited.size;
+  $('confirmText').textContent=`This will remove all ${n} ${n===1?'city':'cities'} you've lit up. This can't be undone.`;
+  $('confirmModal').hidden=false; $('confirmNo').focus();
+}
+function closeConfirm(){ $('confirmModal').hidden=true; }
+$('btnReset').onclick=openConfirm;
+$('confirmNo').onclick=closeConfirm;
+$('confirmModal').addEventListener('mousedown',e=>{ if(e.target===$('confirmModal')) closeConfirm(); });
+$('confirmYes').onclick=()=>{
+  visited.clear(); D=derive(visited); closeConfirm(); closePanel();
+  paintAll(false); updateHud(); shown=0; countTo(D.score); save();
+  toast('Map reset',COLORS['Asia']);
+};
 $('btnShare').onclick=()=>{ if(viewing) return; if(!visited.size){ toast('Light up a city first ✦',COLORS['Asia']); q.focus(); return; } openModal(); };
 $('modalClose').onclick=closeModal;
 $('modal').addEventListener('mousedown',e=>{ if(e.target===$('modal')) closeModal(); });
