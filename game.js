@@ -103,7 +103,7 @@ const areaOf = features.map(f=>d3.geoArea(f));
 
 let W=innerWidth, H=innerHeight;
 const projection = d3.geoNaturalEarth1();
-const path = d3.geoPath(projection);
+const path = d3.geoPath(projection).digits(2);
 const sphere = {type:'Sphere'};
 const graticule = d3.geoGraticule10();
 let K = 1;                                 // current zoom factor
@@ -140,10 +140,8 @@ const dotG   = zoomG.append('g');
 // land
 const land = landG.selectAll('path').data(features).join('path').attr('class','land')
   .on('mouseenter',(e,f)=>hoverCountry(e,f)).on('mousemove',moveTip).on('mouseleave',()=>{ hideTip(); })
-  .on('click',(e,f)=>openPanel(f.properties.name));
-// hidden defs copies used for clip paths
-const clipSrc = defs.append('g');
-clipSrc.selectAll('path').data(features).join('path').attr('id',(f,i)=>'cp'+i);
+  .on('click',(e,f)=>openPanel(f.properties.name))
+  .attr('id',(f,i)=>'cp'+i);             // clip paths reference these land shapes directly (no duplicate geometry)
 
 // dots
 const dots = dotG.selectAll('g').data(cities).join('g').attr('class','dot')
@@ -177,17 +175,17 @@ function measurePads(){
 }
 const centerY = () => narrow() ? (PAD.top+H-PAD.bot)/2 : H/2;      // middle of the part of the screen the map can use
 let geomDirty=true;                       // projected geometry must be rebuilt (layout/resize); otherwise paintAll leaves existing paths alone
+let layoutW=0, layoutH=0;
 function layout(){
-  W=innerWidth; H=innerHeight;
+  W=innerWidth; H=innerHeight; layoutW=W; layoutH=H;
   svg.attr('viewBox',`0 0 ${W} ${H}`);
   measurePads();
   projection.fitExtent([[W*0.02,PAD.top],[W*0.98,H-PAD.bot]],sphere);
   zoomG.select('.ocean').attr('d',path(sphere));
   zoomG.select('.grat').attr('d',path(graticule));
   land.attr('d',path);
-  clipSrc.selectAll('path').attr('d',(f)=>path(f));
   geomDirty=true;
-  cities.forEach(c=>{ const p=projection([c.lon,c.lat]); c.x=p[0]; c.y=p[1]; });
+  cities.forEach(c=>{ const p=projection([c.lon,c.lat]); c.x=p[0]; c.y=p[1]; c.tk=-1; });   // tk: zoom the dot's transform was last written for
   // nearest neighbour within 2*HIT_R, via a spatial grid (only crowding below that matters for click areas)
   const CELL=HIT_R*2, grid=new Map(), key=(i,j)=>i*100003+j;
   cities.forEach(c=>{ const k=key(Math.floor(c.x/CELL),Math.floor(c.y/CELL)); (grid.get(k)||grid.set(k,[]).get(k)).push(c); });
@@ -201,9 +199,11 @@ function layout(){
 }
 
 /* ---------- zoom ---------- */
-const zoom = d3.zoom().scaleExtent([1,70]).on('zoom',e=>scheduleTransform(e.transform));
+let movingT=0;                             // body.moving while the map is being dragged/zoomed: heavy decoration pauses so the frames go to the map
+function markMoving(){ if(!movingT) document.body.classList.add('moving'); clearTimeout(movingT); movingT=setTimeout(()=>{ movingT=0; document.body.classList.remove('moving'); },180); }
+const zoom = d3.zoom().scaleExtent([1,70]).on('zoom',e=>{ markMoving(); scheduleTransform(e.transform); });
 svg.call(zoom).on('dblclick.zoom',null);
-let dotNodes=null;
+let dotNodes=null, nameK=-1;               // nameK: zoom the country-name labels were last scaled for
 function applyTransform(t){
   K=t.k;
   zoomG.attr('transform',t);
@@ -213,11 +213,13 @@ function applyTransform(t){
     const el=dotNodes[n], c=el.__data__, sx=t.x+t.k*c.x, sy=t.y+t.k*c.y;
     if(!(sx>x0&&sx<x1&&sy>y0&&sy<y1)){ if(c.vis!==false){ el.style.display='none'; c.vis=false; } continue; }
     if(c.vis!==true){ el.style.display=''; c.vis=true; }
+    if(c.tk===K) continue;                        // panning doesn't change a dot's size, so only rewrite when the zoom changed
+    c.tk=K;
     el.setAttribute('transform',`translate(${c.x.toFixed(2)},${c.y.toFixed(2)}) scale(${(1/K).toFixed(4)})`);
     const r=Math.max(hitFloor,Math.min(HIT_R,c.near*K/2));   // shrink the click area where cities crowd
     if(c.hr===undefined||Math.abs(r-c.hr)>0.4){ c.hr=r; el.lastElementChild.previousElementSibling.setAttribute('r',r.toFixed(1)); }
   }
-  nameG.selectAll('text').attr('transform',function(){ const d=this.__data__; return `translate(${d.x},${d.y}) scale(${1/K})`; });
+  if(nameK!==K){ nameK=K; nameG.selectAll('text').attr('transform',function(){ const d=this.__data__; return `translate(${d.x},${d.y}) scale(${1/K})`; }); }
   const f=Math.max(1,1100/W);             // narrower screens need more zoom before labels stop colliding
   svg.classed('far',touchUI()&&K<2.2);    // zoomed out on a phone: taps go to countries, not tiny dots
   svg.classed('lv0',K<2).classed('lv1',K>=2.3*f).classed('lv2',K>=8*f).classed('lv3',K>=22*f);
@@ -309,7 +311,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
   const nsel = nameG.selectAll('text').data(nd,d=>d.name);
   nsel.exit().remove();
   nsel.enter().append('text').attr('class',d=>'cname'+(d.big?' big':'')).text(d=>d.name).attr('font-size',d=>d.big?13:10);
-  nameG.selectAll('text').each(d=>{});
+  nameK=-1;
   applyTransform(d3.zoomTransform(svg.node()));
 
   // continent outlines
@@ -338,7 +340,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
    ========================================================= */
 const cv=$('fx'), cx=cv.getContext('2d');
 let parts=[], rings=[], stars=[], raf=0, DPR=1;
-function sizeCanvas(){ DPR=Math.min(devicePixelRatio||1,2); cv.width=W*DPR; cv.height=H*DPR; cx.setTransform(DPR,0,0,DPR,0,0); }
+function sizeCanvas(){ DPR=Math.min(devicePixelRatio||1,2); cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; cx.setTransform(DPR,0,0,DPR,0,0); }
 function hexA(h,a){ const n=parseInt(h.slice(1),16); return `rgba(${n>>16},${n>>8&255},${n&255},${a})`; }
 function burst(x,y,color,n,speed,life=1,grav=60){
   for(let i=0;i<n;i++){
@@ -1013,7 +1015,11 @@ function boot(){
   // little entrance: sweep unlocked layers in
   litG.style('opacity',0).transition().duration(1200).style('opacity',1);
   paintG.style('opacity',0).transition().duration(1200).style('opacity',1);
-  let rt; addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ layout(); sizeCanvas(); },120); });
+  let rt; addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{
+    // phones fire a resize each time the address bar slides in or out; rebuilding the whole map for that makes scrolling stutter
+    if(matchMedia('(pointer:coarse)').matches && Math.abs(innerWidth-layoutW)<2 && Math.abs(innerHeight-layoutH)<160) return;
+    layout(); sizeCanvas();
+  },120); });
 }
 
 /* ---------- performance meter: fps + frame time, toggle with P (or load the page with ?perf) ---------- */
