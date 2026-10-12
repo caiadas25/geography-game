@@ -135,7 +135,17 @@ const paintG = zoomG.append('g').attr('class','paint');
 const litG   = zoomG.append('g');
 const contG  = zoomG.append('g');
 const nameG  = zoomG.append('g');
+const fieldG = zoomG.append('g').attr('class','dotfield');    // zoomed out on a phone: every unvisited dot drawn as one shape
 const dotG   = zoomG.append('g');
+
+const fieldDefs = defs.append('g');
+const fMaj = fieldDefs.append('path').attr('id','fmaj').attr('class','fp'), fMin = fieldDefs.append('path').attr('id','fmin').attr('class','fp');
+[['fmaj','rim'],['fmin','rim'],['fmaj','fill'],['fmin','fill']].forEach(([id,k])=>fieldG.append('use').attr('href','#'+id).attr('class',k+' '+id));
+function rebuildField(set){
+  let a='', b='';
+  for(let n=0;n<cities.length;n++){ const c=cities[n]; if(set.has(c.i)) continue; const p=`M${c.x.toFixed(1)} ${c.y.toFixed(1)}h.01`; if(c.m) b+=p; else a+=p; }
+  fMaj.attr('d',a); fMin.attr('d',b);
+}
 
 // land
 const land = landG.selectAll('path').data(features).join('path').attr('class','land')
@@ -149,9 +159,15 @@ const dots = dotG.selectAll('g').data(cities).join('g').attr('class','dot')
 dots.append('circle').attr('class','halo').attr('r',7);
 dots.append('circle').attr('class','core').attr('r',3.1);
 dots.append('circle').attr('class','hit').attr('r',HIT_R);
+dots.each(function(c){ c.el=this; c.hit=this.lastElementChild; });
 // Vatican City is nudged west of Rome so the two dots can be told apart; its label goes on the left
 const LEFT_LABEL = new Set(['Vatican City']);
-dots.append('text').attr('x',c=>LEFT_LABEL.has(c.n)?-7:7).attr('y',3.5).style('text-anchor',c=>LEFT_LABEL.has(c.n)?'end':null).text(c=>c.n);
+function addLabel(c){                       // labels are only created once the map is zoomed far enough for them to show
+  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',LEFT_LABEL.has(c.n)?-7:7); t.setAttribute('y',3.5);
+  if(LEFT_LABEL.has(c.n)) t.style.textAnchor='end';
+  t.textContent=c.n; c.el.appendChild(t); c.tx=true;
+}
 dots.on('click',(e,c)=>{ e.stopPropagation(); toggleCity(c.i); })
     .on('mouseenter',(e,c)=>hoverCity(e,c)).on('mousemove',moveTip).on('mouseleave',hideTip);
 
@@ -175,6 +191,15 @@ function measurePads(){
 }
 const centerY = () => narrow() ? (PAD.top+H-PAD.bot)/2 : H/2;      // middle of the part of the screen the map can use
 let geomDirty=true;                       // projected geometry must be rebuilt (layout/resize); otherwise paintAll leaves existing paths alone
+// country outlines come in two detail levels from one projection pass: full, and one with points closer than 0.25px dropped (used when zoomed out)
+const lodCtx={ full:'', lo:'', lx:0, ly:0, eps2:0.0625,
+  reset(){ this.full=''; this.lo=''; },
+  moveTo(x,y){ const p=Math.round(x*100)/100+','+Math.round(y*100)/100; this.full+='M'+p; this.lo+='M'+p; this.lx=x; this.ly=y; },
+  lineTo(x,y){ const p='L'+Math.round(x*100)/100+','+Math.round(y*100)/100; this.full+=p; const dx=x-this.lx, dy=y-this.ly; if(dx*dx+dy*dy>=this.eps2){ this.lo+=p; this.lx=x; this.ly=y; } },
+  closePath(){ this.full+='Z'; this.lo+='Z'; }, arc(){}, rect(){} };
+const lodPath=d3.geoPath(projection,lodCtx), landFull=[], landLo=[];
+let landHi=false;
+const setLandDetail=hi=>{ landHi=hi; land.attr('d',(f,i)=>hi?landFull[i]:landLo[i]); };
 let layoutW=0, layoutH=0;
 function layout(){
   W=innerWidth; H=innerHeight; layoutW=W; layoutH=H;
@@ -183,7 +208,8 @@ function layout(){
   projection.fitExtent([[W*0.02,PAD.top],[W*0.98,H-PAD.bot]],sphere);
   zoomG.select('.ocean').attr('d',path(sphere));
   zoomG.select('.grat').attr('d',path(graticule));
-  land.attr('d',path);
+  features.forEach((f,i)=>{ lodCtx.reset(); lodPath(f); landFull[i]=lodCtx.full; landLo[i]=lodCtx.lo; });
+  setLandDetail(K>=4);
   geomDirty=true;
   cities.forEach(c=>{ const p=projection([c.lon,c.lat]); c.x=p[0]; c.y=p[1]; c.tk=-1; });   // tk: zoom the dot's transform was last written for
   // nearest neighbour within 2*HIT_R, via a spatial grid (only crowding below that matters for click areas)
@@ -203,25 +229,36 @@ let movingT=0;                             // body.moving while the map is being
 function markMoving(){ if(!movingT) document.body.classList.add('moving'); clearTimeout(movingT); movingT=setTimeout(()=>{ movingT=0; document.body.classList.remove('moving'); },180); }
 const zoom = d3.zoom().scaleExtent([1,70]).on('zoom',e=>{ markMoving(); scheduleTransform(e.transform); });
 svg.call(zoom).on('dblclick.zoom',null);
-let dotNodes=null, nameK=-1;               // nameK: zoom the country-name labels were last scaled for
+let nameK=-1;                              // nameK: zoom the country-name labels were last scaled for
+const farShown=new Set(); let farPrev=false;
+function visitDot(c,t,set,lbl,hitFloor){
+  const el=c.el, sx=t.x+t.k*c.x, sy=t.y+t.k*c.y;
+  if(!(sx>-40&&sx<W+40&&sy>-40&&sy<H+40)){ if(c.vis!==false){ el.style.display='none'; c.vis=false; } return; }   // off screen: leave it alone
+  if(c.vis!==true){ el.style.display=''; c.vis=true; }
+  if(lbl && !c.tx && (lbl>1 || set.has(c.i))) addLabel(c);
+  if(c.tk===K) return;                          // panning doesn't change a dot's size, so only rewrite when the zoom changed
+  c.tk=K;
+  el.setAttribute('transform',`translate(${c.x.toFixed(2)},${c.y.toFixed(2)}) scale(${(1/K).toFixed(4)})`);
+  const r=Math.max(hitFloor,Math.min(HIT_R,c.near*K/2));   // shrink the click area where cities crowd
+  if(c.hr===undefined||Math.abs(r-c.hr)>0.4){ c.hr=r; c.hit.setAttribute('r',r.toFixed(1)); }
+}
 function applyTransform(t){
   K=t.k;
   zoomG.attr('transform',t);
-  if(!dotNodes) dotNodes=dots.nodes();
-  const m=40, x0=-m, x1=W+m, y0=-m, y1=H+m, hitFloor=touchUI()?6:3;
-  for(let n=0;n<dotNodes.length;n++){            // only touch dots that are on screen
-    const el=dotNodes[n], c=el.__data__, sx=t.x+t.k*c.x, sy=t.y+t.k*c.y;
-    if(!(sx>x0&&sx<x1&&sy>y0&&sy<y1)){ if(c.vis!==false){ el.style.display='none'; c.vis=false; } continue; }
-    if(c.vis!==true){ el.style.display=''; c.vis=true; }
-    if(c.tk===K) continue;                        // panning doesn't change a dot's size, so only rewrite when the zoom changed
-    c.tk=K;
-    el.setAttribute('transform',`translate(${c.x.toFixed(2)},${c.y.toFixed(2)}) scale(${(1/K).toFixed(4)})`);
-    const r=Math.max(hitFloor,Math.min(HIT_R,c.near*K/2));   // shrink the click area where cities crowd
-    if(c.hr===undefined||Math.abs(r-c.hr)>0.4){ c.hr=r; el.lastElementChild.previousElementSibling.setAttribute('r',r.toFixed(1)); }
+  const hitFloor=touchUI()?6:3, f=Math.max(1,1100/W), set=active();   // narrower screens need more zoom before labels stop colliding
+  const lbl=K>=8*f?2:K>=2.3*f?1:0;
+  if(!landHi && K>=4.5) setLandDetail(true); else if(landHi && K<3.5) setLandDetail(false);
+  const far=touchUI()&&K<2.2;                   // zoomed out on a phone: unvisited dots are one shape and taps go to countries
+  if(far!==farPrev){
+    farPrev=far;
+    if(far){ farShown.clear(); for(let n=0;n<cities.length;n++){ const c=cities[n]; if(set.has(c.i)){ if(c.vis) farShown.add(c); } else if(c.vis!==false){ c.el.style.display='none'; c.vis=false; } } }
   }
+  if(far){
+    for(const c of farShown) if(!set.has(c.i)){ c.el.style.display='none'; c.vis=false; farShown.delete(c); }
+    set.forEach(i=>{ const c=cities[i]; visitDot(c,t,set,0,hitFloor); if(c.vis) farShown.add(c); else farShown.delete(c); });
+  } else for(let n=0;n<cities.length;n++) visitDot(cities[n],t,set,lbl,hitFloor);
   if(nameK!==K){ nameK=K; nameG.selectAll('text').attr('transform',function(){ const d=this.__data__; return `translate(${d.x},${d.y}) scale(${1/K})`; }); }
-  const f=Math.max(1,1100/W);             // narrower screens need more zoom before labels stop colliding
-  svg.classed('far',touchUI()&&K<2.2);    // zoomed out on a phone: taps go to countries, not tiny dots
+  svg.classed('far',far);
   svg.classed('lv0',K<2).classed('lv1',K>=2.3*f).classed('lv2',K>=8*f).classed('lv3',K>=22*f);
 }
 let pendingT=null, tRaf=0;                // coalesce wheel/drag events into one update per frame
@@ -269,6 +306,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
 
   // dots
   dots.classed('on',c=>set.has(c.i)).classed('minor',c=>!!c.m);
+  if(touchUI()) rebuildField(set);
 
   // city glows, clipped to their country
   const groups = new Map();

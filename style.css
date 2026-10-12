@@ -369,3 +369,12 @@ body.moving .dot.on .halo,body.moving .contLine.inner{animation-play-state:pause
   #dock .round{background:none}
   body.moving .glass:not(.sheet),body.moving #search,body.moving .round{backdrop-filter:none;-webkit-backdrop-filter:none}
 }
+
+/* zoomed far out on a phone: all unvisited dots are one shape per size (rim, then fill) instead of thousands of elements */
+.dotfield{display:none;pointer-events:none}
+#map.far .dotfield{display:inline}
+.fp{fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.dotfield .rim{stroke:rgba(5,8,16,.7)}
+.dotfield .fill{stroke:#5d6c96}
+.dotfield .rim.fmaj{stroke-width:7.2px}.dotfield .rim.fmin{stroke-width:5.4px}
+.dotfield .fill.fmaj{stroke-width:5.2px}.dotfield .fill.fmin{stroke-width:3.4px}
