@@ -835,7 +835,7 @@ async function copyText(text){            // returns true only if something was 
   let ok=false; try{ ok=document.execCommand('copy'); }catch(e){} ta.remove(); return ok;
 }
 $('btnCopy').onclick=async()=>{
-  const ok=await copyText(`${shareMessage()}\n${shareUrl()}`), b=$('btnCopy');
+  const ok=await copyText(shareUrl()), b=$('btnCopy');
   if(!ok){ const l=$('shareLink'); l.focus(); l.select(); }          // leave the link selected so it can be copied by hand
   b.textContent=ok?'Copied ✓':'Press ⌘/Ctrl+C';
   setTimeout(()=>b.textContent='Copy link',2200);
