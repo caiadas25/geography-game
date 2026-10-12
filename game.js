@@ -607,7 +607,8 @@ $('btnSound').classList.toggle('off',!settings.sound);
    Sharing
    ========================================================= */
 function shareUrl(){
-  const base=location.href.split('#')[0];
+  // canonical address only: drop #hash and stray ?query (e.g. ?perf) so friends land on a clean page
+  const base=location.origin!=='null' ? location.origin+location.pathname.replace(/index\.html$/,'') : location.href.split(/[?#]/)[0];
   const name=($('shareName').value||settings.name||'').trim();
   const p=new URLSearchParams(); p.set('s',encode(visited)); if(name) p.set('n',name);
   return base+'#'+p.toString();
@@ -761,6 +762,8 @@ function refreshShare(){
   document.querySelectorAll('#styleRow button').forEach(b=>b.classList.toggle('on',b.dataset.style===(settings.cardStyle||'starfield')));
   $('shareText').textContent=shareMessage();
   $('shareLink').value=shareUrl();
+  const local=/^(file:|localhost$|127\.|\[::1\]|0\.0\.0\.0)/.test(location.protocol==='file:'?'file:':location.hostname);
+  $('shareText').textContent=shareMessage()+(local?' (Heads up: this link points to your own computer — deploy the site first so friends can open it.)':'');
   $('btnNative').hidden=!navigator.share;
 }
 /* ---------- onboarding ---------- */
@@ -859,7 +862,10 @@ function exitViewing(){
   D=derive(visited); paintAll(false); updateHud(); shown=0; countTo(D.score);
   $('searchWrap').classList.toggle('has',visited.size>0);
 }
-$('ribbonBtn').onclick=exitViewing;
+$('ribbonBtn').onclick=()=>{            // friend taps "Play": back to their own map, with the intro if they're new
+  exitViewing();
+  try{ if(!localStorage.getItem(ONB_KEY)) openOnboarding(); else q.focus(); }catch(e){}
+};
 addEventListener('hashchange',()=>{ const v=readHash(); if(v) enterViewing(v); else if(viewing) exitViewing(); });
 
 /* =========================================================
