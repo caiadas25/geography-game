@@ -873,9 +873,9 @@ function exitViewing(){
   D=derive(visited); paintAll(false); updateHud(); shown=0; countTo(D.score);
   $('searchWrap').classList.toggle('has',visited.size>0);
 }
-$('ribbonBtn').onclick=()=>{            // friend taps "Play": back to their own map, with the intro if they're new
-  exitViewing();
-  try{ if(!localStorage.getItem(ONB_KEY)) openOnboarding(); else q.focus(); }catch(e){}
+$('ribbonBtn').onclick=()=>{            // "Play — build your own map": start a fresh map and always run the intro
+  visited.clear(); settings.name=''; $('shareName').value=''; save();
+  exitViewing(); openOnboarding();
 };
 addEventListener('hashchange',()=>{ const v=readHash(); if(v) enterViewing(v); else if(viewing) exitViewing(); });
 
