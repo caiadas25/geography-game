@@ -403,11 +403,22 @@ function fireworks(color,n=9){
 
 // audio
 let ac=null;
+// phones only allow sound once a real touch has started the audio engine, and the iOS silent switch mutes it unless the page asks for 'playback'
+function unlockAudio(){
+  if(ac&&ac.state==='running') return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state!=='running') ac.resume();
+    const s=ac.createBufferSource(); s.buffer=ac.createBuffer(1,1,22050); s.connect(ac.destination); s.start(0);
+    if(navigator.audioSession) navigator.audioSession.type='playback';
+  }catch(e){}
+}
+['pointerdown','touchend','click','keydown'].forEach(ev=>addEventListener(ev,unlockAudio,{passive:true}));
 function tone(f,t0,dur,type='sine',vol=.12){
   if(!settings.sound) return;
   try{
     ac=ac||new (window.AudioContext||window.webkitAudioContext)();
-    if(ac.state==='suspended') ac.resume();
+    if(ac.state!=='running') ac.resume();
     const o=ac.createOscillator(), g=ac.createGain();
     o.type=type; o.frequency.value=f;
     const t=ac.currentTime+t0;
