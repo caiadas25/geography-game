@@ -156,7 +156,6 @@ const land = landG.selectAll('path').data(features).join('path').attr('class','l
 // dots
 const dots = dotG.selectAll('g').data(cities).join('g').attr('class','dot')
   .style('--c',c=>COLORS[c.cont]);
-dots.append('circle').attr('class','halo').attr('r',7);
 dots.append('circle').attr('class','core').attr('r',3.1);
 dots.append('circle').attr('class','hit').attr('r',HIT_R);
 dots.each(function(c){ c.el=this; c.hit=this.lastElementChild; });
@@ -243,7 +242,7 @@ function visitDot(c,t,set,lbl,hitFloor){
   if(c.hr===undefined||Math.abs(r-c.hr)>0.4){ c.hr=r; c.hit.setAttribute('r',r.toFixed(1)); }
 }
 function applyTransform(t){
-  K=t.k;
+  K=t.k; curT=t;
   zoomG.attr('transform',t);
   const hitFloor=touchUI()?6:3, f=Math.max(1,1100/W), set=active();   // narrower screens need more zoom before labels stop colliding
   const lbl=K>=8*f?2:K>=2.3*f?1:0;
@@ -307,6 +306,7 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
   // dots
   dots.classed('on',c=>set.has(c.i)).classed('minor',c=>!!c.m);
   if(touchUI()) rebuildField(set);
+  syncHalos(set);
 
   // city glows, clipped to their country
   const groups = new Map();
@@ -378,7 +378,36 @@ function paintAll(animate=true, newCity=null, newCountries=[], newConts=[]){
    ========================================================= */
 const cv=$('fx'), cx=cv.getContext('2d');
 let parts=[], rings=[], stars=[], raf=0, DPR=1;
-function sizeCanvas(){ DPR=Math.min(devicePixelRatio||1,2); cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; cx.setTransform(DPR,0,0,DPR,0,0); }
+
+/* ---------- pulsing rings round visited cities ----------
+   One canvas drawn ~30 times a second, instead of an endlessly running animation on every city
+   (which kept the browser re-styling and repainting the whole map even when nothing was moving). */
+const hc=$('halos'), hx=hc.getContext('2d');
+let curT=d3.zoomIdentity, haloRaf=0, haloLast=0, haloGroups=[];
+function sizeHalos(){ hc.width=W*DPR; hc.height=H*DPR; hc.style.width=W+'px'; hc.style.height=H+'px'; hx.setTransform(DPR,0,0,DPR,0,0); }
+function drawHalos(now){
+  haloRaf=requestAnimationFrame(drawHalos);
+  if(now-haloLast<30) return; haloLast=now;
+  hx.clearRect(0,0,W,H);
+  const e=Math.sin((now%2800)/2800*Math.PI/2), sc=.6+2*e;       // same pulse as before: ring grows .6x -> 2.6x while fading out
+  hx.globalAlpha=.9*(1-e); hx.lineWidth=1.5*sc;
+  const t=curT;
+  for(const g of haloGroups){
+    hx.strokeStyle=g.color; hx.beginPath();
+    for(const c of g.list){
+      const x=t.x+t.k*c.x, y=t.y+t.k*c.y; if(x<-40||x>W+40||y<-40||y>H+40) continue;
+      const r=(c.m?5:7)*sc; hx.moveTo(x+r,y); hx.arc(x,y,r,0,6.2832);
+    }
+    hx.stroke();
+  }
+}
+function syncHalos(set){
+  const by=new Map(); set.forEach(i=>{ const c=cities[i]; (by.get(c.cont)||by.set(c.cont,[]).get(c.cont)).push(c); });
+  haloGroups=[...by.entries()].map(([k,list])=>({color:COLORS[k],list}));
+  if(haloGroups.length&&!haloRaf) haloRaf=requestAnimationFrame(drawHalos);
+  else if(!haloGroups.length&&haloRaf){ cancelAnimationFrame(haloRaf); haloRaf=0; hx.clearRect(0,0,W,H); }
+}
+function sizeCanvas(){ DPR=Math.min(devicePixelRatio||1,2); cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px'; cx.setTransform(DPR,0,0,DPR,0,0); sizeHalos(); }
 function hexA(h,a){ const n=parseInt(h.slice(1),16); return `rgba(${n>>16},${n>>8&255},${n&255},${a})`; }
 function burst(x,y,color,n,speed,life=1,grav=60){
   for(let i=0;i<n;i++){
