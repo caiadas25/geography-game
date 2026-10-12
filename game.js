@@ -841,7 +841,7 @@ $('btnCopy').onclick=async()=>{
   setTimeout(()=>b.textContent='Copy link',2200);
 };
 $('shareLink').addEventListener('focus',e=>e.target.select());
-$('btnNative').onclick=()=>navigator.share({title:'Constellate',text:shareMessage(),url:shareUrl()}).catch(()=>{});
+$('btnNative').onclick=()=>navigator.share({title:'Constellate',url:shareUrl()}).catch(()=>{});
 $('btnImage').onclick=()=>{            // render a crisp 2x copy for download
   const big=document.createElement('canvas'); drawCard(big,2);
   const a=document.createElement('a'); a.download='constellate.png'; a.href=big.toDataURL('image/png'); a.click();
