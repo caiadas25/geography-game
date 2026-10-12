@@ -33,6 +33,8 @@
   </div>
 </header>
 
+<button id="btnMenu" class="round" aria-label="Menu" aria-expanded="false" aria-controls="dock">⋯</button>
+
 <div id="searchWrap">
   <div id="search">
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -44,8 +46,10 @@
 </div>
 
 <aside id="score" class="glass">
+  <button id="sheetHandle" aria-label="Show more stats" aria-expanded="false"></button>
   <div class="rank" id="rank">Homebody</div>
   <div class="big"><span id="scoreNum">0</span><small>pts</small></div>
+  <div class="mini" id="mini"></div>
   <div class="stats">
     <div class="stat"><div class="row"><span>Cities</span><b id="stCities">0</b></div><div class="bar"><i id="barCities"></i></div></div>
     <div class="stat"><div class="row"><span>Countries</span><b id="stCountries">0</b></div><div class="bar"><i id="barCountries"></i></div></div>
@@ -56,6 +60,7 @@
 </aside>
 
 <aside id="panel" class="glass" aria-hidden="true">
+  <div class="grab" data-close="panel"></div>
   <button class="x" id="panelClose" aria-label="Close">×</button>
   <div class="tag" id="pTag"></div>
   <h2 id="pName"></h2>
@@ -63,18 +68,29 @@
   <div id="pChips"></div>
 </aside>
 
+<aside id="cityCard" class="glass" aria-hidden="true">
+  <div class="grab" data-close="card"></div>
+  <button class="x" id="ccClose" aria-label="Close">×</button>
+  <div class="tag" id="ccTag"></div>
+  <h2 id="ccName"></h2>
+  <p id="ccSub"></p>
+  <button id="ccAct" class="primary"></button>
+</aside>
+
 <div id="dock">
   <button id="btnZoomIn" class="round" aria-label="Zoom in">+</button>
   <button id="btnZoomOut" class="round" aria-label="Zoom out">−</button>
   <button id="btnHome" class="round" aria-label="Reset view" title="Reset view">⌂</button>
-  <button id="btnSound" class="round" aria-label="Toggle sound" title="Sound">♪</button>
-  <button id="btnHelp" class="round" aria-label="How it works" title="How it works">?</button>
-  <button id="btnReset" class="round" aria-label="Reset my map" title="Reset my map">↺</button>
+  <button id="btnSound" class="round" aria-label="Toggle sound" data-label="Sound" title="Sound">♪</button>
+  <button id="btnHelp" class="round" aria-label="How it works" data-label="How it works" title="How it works">?</button>
+  <button id="btnReset" class="round" aria-label="Reset my map" data-label="Reset my map" title="Reset my map">↺</button>
 </div>
 
-<button id="btnShare" class="cta">
+<button id="btnRecenter" class="round" aria-label="Recenter map" title="Recenter map"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
+
+<button id="btnShare" class="cta" aria-label="Share my map">
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v14"/></svg>
-  Share my map
+  <span class="lbl">Share my map</span>
 </button>
 
 <div id="perf" hidden aria-hidden="true">
