@@ -676,6 +676,7 @@ $('btnRecenter').onclick=()=>homeView(900);
 $('hint').addEventListener('click',e=>{ const b=e.target.closest('button[data-try]'); if(!b) return; const c=cities.find(c=>c.n===b.dataset.try); if(c) pick(c); });
 function syncUI(){
   HIT_R=touchUI()?22:16;
+  zoom.scaleExtent([1,touchUI()?200:70]);          // fingers get to pinch in much deeper
   const tail=touchUI()?'tap a country on the map':'tap any dot on the map';
   $('hint').innerHTML=`Try <button data-try="Lisbon">Lisbon</button>, <button data-try="Tokyo">Tokyo</button> or <button data-try="New York">New York</button> — or ${tail}`;
 }
