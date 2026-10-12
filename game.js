@@ -593,7 +593,7 @@ q.addEventListener('keydown',e=>{
   else if(e.key==='Escape'){ q.value=''; results.innerHTML=''; q.blur(); }
 });
 q.addEventListener('blur',()=>setTimeout(()=>{ results.innerHTML=''; },120));
-addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement!==q&&document.activeElement.tagName!=='INPUT'){ e.preventDefault(); q.focus(); } if(e.key==='Escape'){ closePanel(); closeModal(); closeConfirm(); } });
+addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement!==q&&document.activeElement.tagName!=='INPUT'){ e.preventDefault(); q.focus(); } if(e.key==='Escape'){ closePanel(); closeModal(); closeConfirm(); closeFriendModal(); } });
 document.querySelectorAll('#hint button').forEach(b=>b.onclick=()=>{ const c=cities.find(c=>c.n===b.dataset.try); if(c) pick(c); });
 
 /* ---------- dock ---------- */
@@ -855,8 +855,19 @@ function enterViewing(v){
   $('ribbonText').innerHTML=`<b>${nm.replace(/[<>&]/g,'')}</b>'s map · ${D.score.toLocaleString()} pts — can you beat it?`;
   $('btnShare').hidden=true; $('searchWrap').classList.add('has'); closePanel();
   paintAll(false); updateHud(); shown=0; countTo(D.score);
+  openFriendModal(nm.replace(/[<>&]/g,''));
 }
+function openFriendModal(nm){
+  $('friendTitle').textContent=`${nm}'s map`;
+  $('friendText').textContent=`${nm} lit up ${viewing.visited.size} cities, ${D.countries.size} countries and ${D.conts.size} continents — ${D.score.toLocaleString()} pts (${rankFor(D.score)[1]}). Light up the places you've been and see if you can beat it.`;
+  drawCard($('friendCard'),1.5); $('friendModal').hidden=false; $('friendPlay').focus();
+}
+const closeFriendModal=()=>{ $('friendModal').hidden=true; };
+$('friendClose').onclick=$('friendExplore').onclick=closeFriendModal;
+$('friendModal').addEventListener('mousedown',e=>{ if(e.target===$('friendModal')) closeFriendModal(); });
+$('friendPlay').onclick=()=>{ closeFriendModal(); $('ribbonBtn').click(); };
 function exitViewing(){
+  closeFriendModal();
   viewing=null; history.replaceState(null,'',location.pathname+location.search);
   $('ribbon').hidden=true; $('btnShare').hidden=false;
   D=derive(visited); paintAll(false); updateHud(); shown=0; countTo(D.score);

@@ -108,6 +108,19 @@
   </div>
 </div>
 
+<div id="friendModal" class="overlay" hidden>
+  <div class="sheet glass friend" role="dialog" aria-modal="true" aria-labelledby="friendTitle">
+    <button class="x" id="friendClose" aria-label="Close">×</button>
+    <h3 id="friendTitle"></h3>
+    <canvas id="friendCard" width="1200" height="630"></canvas>
+    <p id="friendText"></p>
+    <div class="actions">
+      <button id="friendExplore" class="ghost">Explore their map</button>
+      <button id="friendPlay" class="primary">Play — build your own map</button>
+    </div>
+  </div>
+</div>
+
 <div id="confirmModal" class="overlay" hidden>
   <div class="sheet glass confirm" role="alertdialog" aria-labelledby="confirmTitle">
     <h3 id="confirmTitle">Reset your map?</h3>

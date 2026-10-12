@@ -260,3 +260,9 @@ kbd{font:500 11px var(--font);color:#6f7b9f;border:1px solid var(--line);border-
 #perf canvas{display:block;width:180px;height:40px;margin:4px 0}
 #perf .pHint{opacity:.5;margin-top:2px}
 #perf .bad{color:#ff8aa0}#perf .ok{color:#ffd479}#perf .good{color:#7cf0d4}
+
+.sheet.friend{width:min(920px,100%);padding:26px}
+.sheet.friend h3{font-size:24px;padding-right:30px}
+#friendCard{width:100%;height:auto;border-radius:14px;border:1px solid var(--line);display:block;margin-bottom:14px}
+#friendText{color:var(--muted);margin-bottom:16px}
+.sheet.friend .actions .primary{flex:1.4;height:48px;font-size:15px}
