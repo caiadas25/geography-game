@@ -154,7 +154,7 @@ dots.append('circle').attr('class','hit').attr('r',HIT_R);
 // Vatican City is nudged west of Rome so the two dots can be told apart; its label goes on the left
 const LEFT_LABEL = new Set(['Vatican City']);
 dots.append('text').attr('x',c=>LEFT_LABEL.has(c.n)?-7:7).attr('y',3.5).style('text-anchor',c=>LEFT_LABEL.has(c.n)?'end':null).text(c=>c.n);
-dots.on('click',(e,c)=>{ e.stopPropagation(); if(viewing||touchUI()) openCityCard(c); else toggleCity(c.i); })
+dots.on('click',(e,c)=>{ e.stopPropagation(); toggleCity(c.i); })
     .on('mouseenter',(e,c)=>hoverCity(e,c)).on('mousemove',moveTip).on('mouseleave',hideTip);
 
 // largest-polygon helpers for nice zooms / labels
@@ -208,7 +208,7 @@ function applyTransform(t){
   K=t.k;
   zoomG.attr('transform',t);
   if(!dotNodes) dotNodes=dots.nodes();
-  const m=40, x0=-m, x1=W+m, y0=-m, y1=H+m, hitFloor=touchUI()?5:3;
+  const m=40, x0=-m, x1=W+m, y0=-m, y1=H+m, hitFloor=touchUI()?6:3;
   for(let n=0;n<dotNodes.length;n++){            // only touch dots that are on screen
     const el=dotNodes[n], c=el.__data__, sx=t.x+t.k*c.x, sy=t.y+t.k*c.y;
     if(!(sx>x0&&sx<x1&&sy>y0&&sy<y1)){ if(c.vis!==false){ el.style.display='none'; c.vis=false; } continue; }
@@ -559,7 +559,7 @@ const visitedHas = i => active().has(i);
 let panelCountry=null;
 function openPanel(name){
   if(!byCountry.has(name)){ closePanel(); return; }
-  closeCityCard(); panelCountry=name; refreshPanel(); $('panel').classList.add('open'); $('panel').setAttribute('aria-hidden','false');
+  panelCountry=name; refreshPanel(); $('panel').classList.add('open'); $('panel').setAttribute('aria-hidden','false');
   syncSheets(); if(narrow()) focusCountry(name);
 }
 function closePanel(){ panelCountry=null; $('panel').classList.remove('open'); $('panel').setAttribute('aria-hidden','true'); syncSheets(); }
@@ -582,11 +582,10 @@ svg.on('click.bg',e=>{ if(e.target===svg.node()||e.target.classList.contains('oc
 /* =========================================================
    Phone UI: city card, bottom sheets, menu, recentering
    ========================================================= */
-let cardCity=null;
-function syncSheets(){ document.body.classList.toggle('sheet-open',$('panel').classList.contains('open')||$('cityCard').classList.contains('open')); }
+function syncSheets(){ document.body.classList.toggle('sheet-open',$('panel').classList.contains('open')); }
 function sheetRect(){                       // the part of the screen still showing map while a card is open
   if(landscape()){ const w=Math.min(340,W*.46); return {x0:16,y0:PAD.top,x1:W-w-24,y1:H-12}; }
-  const h=Math.max($('panel').classList.contains('open')?$('panel').offsetHeight:0,$('cityCard').classList.contains('open')?$('cityCard').offsetHeight:0);
+  const h=$('panel').classList.contains('open')?$('panel').offsetHeight:0;
   return {x0:16,y0:PAD.top,x1:W-16,y1:H-h-12};
 }
 function focusCountry(name){                // frame the tapped country above the sheet
@@ -602,26 +601,6 @@ function nudgeInto(sx,sy,r){                // pan just enough to bring a point 
   if(sy<r.y0) dy=r.y0-sy; else if(sy>r.y1) dy=r.y1-sy;
   if(dx||dy) svg.transition().duration(450).call(zoom.translateBy,dx/K,dy/K);
 }
-function openCityCard(c){
-  closePanel(); cardCity=c; refreshCard();
-  const el=$('cityCard'); el.classList.add('open'); el.setAttribute('aria-hidden','false'); syncSheets();
-  const [sx,sy]=toScreen(c.lon,c.lat), r=sheetRect();
-  nudgeInto(sx,sy,{x0:r.x0+30,x1:r.x1-30,y0:r.y0+30,y1:r.y1-30});
-}
-function closeCityCard(){ cardCity=null; const el=$('cityCard'); el.classList.remove('open'); el.setAttribute('aria-hidden','true'); syncSheets(); }
-function refreshCard(){
-  if(!cardCity) return;
-  const c=cardCity, on=active().has(c.i), b=$('ccAct');
-  $('cityCard').style.setProperty('--c',COLORS[c.cont]);
-  $('ccTag').textContent=c.cont; $('ccName').textContent=c.n;
-  if(viewing){ const nm=(viewing.name||'their'); $('ccSub').textContent=`${c.c} · ${on?'on':'not on'} ${viewing.name?nm+"'s":'their'} map`; b.hidden=true; return; }
-  $('ccSub').textContent=`${c.c} · ${on?'on your map':`+${ptsOf(c)} points`}`;
-  b.hidden=false; b.classList.toggle('remove',on); b.textContent=on?'Remove from my map':"I've been here ✦";
-}
-$('ccAct').onclick=()=>{ const c=cardCity; if(!c) return; closeCityCard(); toggleCity(c.i); };
-$('ccClose').onclick=closeCityCard;
-svg.on('click.card',closeCityCard);
-
 function swipeable(el,{onTap,onUp,onDown}){     // tap, or a vertical swipe of 28px+
   let y0=null;
   el.addEventListener('pointerdown',e=>{ y0=e.clientY; try{ el.setPointerCapture(e.pointerId); }catch(_){} });
@@ -629,7 +608,7 @@ function swipeable(el,{onTap,onUp,onDown}){     // tap, or a vertical swipe of 2
   el.addEventListener('pointercancel',()=>{ y0=null; });
   el.addEventListener('click',e=>{ if(e.detail===0) onTap&&onTap(); });     // keyboard
 }
-document.querySelectorAll('.grab').forEach(g=>swipeable(g,{onDown:()=>g.dataset.close==='panel'?closePanel():closeCityCard()}));
+document.querySelectorAll('.grab').forEach(g=>swipeable(g,{onDown:()=>closePanel()}));
 function setExpanded(v){
   $('score').classList.toggle('expanded',v); document.body.classList.toggle('sheet-exp',v);
   $('sheetHandle').setAttribute('aria-expanded',String(v)); $('sheetHandle').setAttribute('aria-label',v?'Show less':'Show more stats');
@@ -675,7 +654,7 @@ function homeView(ms=900){
 $('btnRecenter').onclick=()=>homeView(900);
 $('hint').addEventListener('click',e=>{ const b=e.target.closest('button[data-try]'); if(!b) return; const c=cities.find(c=>c.n===b.dataset.try); if(c) pick(c); });
 function syncUI(){
-  HIT_R=touchUI()?22:16;
+  HIT_R=touchUI()?24:16;
   zoom.scaleExtent([1,touchUI()?200:70]);          // fingers get to pinch in much deeper
   const tail=touchUI()?'tap a country on the map':'tap any dot on the map';
   $('hint').innerHTML=`Try <button data-try="Lisbon">Lisbon</button>, <button data-try="Tokyo">Tokyo</button> or <button data-try="New York">New York</button> — or ${tail}`;
@@ -720,7 +699,7 @@ q.addEventListener('keydown',e=>{
   else if(e.key==='Escape'){ q.value=''; results.innerHTML=''; q.blur(); }
 });
 q.addEventListener('blur',()=>setTimeout(()=>{ results.innerHTML=''; $('searchWrap').classList.remove('res'); },120));
-addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement!==q&&document.activeElement.tagName!=='INPUT'){ e.preventDefault(); q.focus(); } if(e.key==='Escape'){ closePanel(); closeCityCard(); setMenu(false); closeModal(); closeConfirm(); closeFriendModal(); } });
+addEventListener('keydown',e=>{ if(e.key==='/'&&document.activeElement!==q&&document.activeElement.tagName!=='INPUT'){ e.preventDefault(); q.focus(); } if(e.key==='Escape'){ closePanel(); setMenu(false); closeModal(); closeConfirm(); closeFriendModal(); } });
 
 /* ---------- dock ---------- */
 $('btnZoomIn').onclick=()=>svg.transition().duration(350).call(zoom.scaleBy,1.7);
@@ -983,7 +962,7 @@ function enterViewing(v){
   const nm=v.name||'A traveller';
   $('ribbon').hidden=false;
   $('ribbonText').innerHTML=`<b>${nm.replace(/[<>&]/g,'')}</b>'s map · ${D.score.toLocaleString()} pts — can you beat it?`;
-  $('btnShare').hidden=true; $('searchWrap').classList.add('has'); closePanel(); closeCityCard();
+  $('btnShare').hidden=true; $('searchWrap').classList.add('has'); closePanel();
   paintAll(false); updateHud(); shown=0; countTo(D.score);
   if(narrow()) homeView(0);
   openFriendModal(nm.replace(/[<>&]/g,''));
@@ -1001,7 +980,7 @@ function exitViewing(){
   closeFriendModal();
   viewing=null; history.replaceState(null,'',location.pathname+location.search);
   $('ribbon').hidden=true; $('btnShare').hidden=false;
-  closeCityCard(); D=derive(visited); paintAll(false); updateHud(); shown=0; countTo(D.score);
+  D=derive(visited); paintAll(false); updateHud(); shown=0; countTo(D.score);
   $('searchWrap').classList.toggle('has',visited.size>0);
   if(narrow()) homeView(700);
 }
